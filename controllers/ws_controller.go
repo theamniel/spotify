@@ -1,28 +1,15 @@
 package controllers
 
 import (
-	"fmt"
-	"log"
-
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/websocket/v2"
+	gws "github.com/gofiber/websocket/v2"
+	"github.com/theamniel/spotify-server/services/websocket"
 )
 
-func SetupWS() fiber.Handler {
-	return websocket.New(func(con *websocket.Conn) {
-		fmt.Println(con.Locals("allowed"))
-		for {
-			mt, msg, err := con.ReadMessage()
-			if err != nil {
-				log.Println("read:", err)
-				break
-			}
-			log.Printf("recv: %s", msg)
-			err = con.WriteMessage(mt, msg)
-			if err != nil {
-				log.Println("write:", err)
-				break
-			}
-		}
-	})
+func SetupWS(ws *websocket.Websocket) fiber.Handler {
+	cfg := gws.Config{
+		ReadBufferSize:  2048,
+		WriteBufferSize: 2048,
+	}
+	return gws.New(ws.Setup(), cfg)
 }
