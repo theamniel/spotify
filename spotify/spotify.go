@@ -20,6 +20,7 @@ type Client struct {
 	accessToken  string
 	clientID     string
 	clientSecret string
+	socket       *ClientSocket
 }
 
 type Config struct {
@@ -41,6 +42,10 @@ func New(cfg Config) *Client {
 		clientSecret: cfg.ClientSecret,
 		accessToken:  "",
 		refreshToken: cfg.RefreshToken,
+		socket: &ClientSocket{
+			send: make(chan *SocketEvent),
+			on:   make(<-chan []byte),
+		},
 	}
 }
 
@@ -94,8 +99,12 @@ func (c *Client) GetRecentlyPlayed() (string, error) {
 func (c *Client) UpdateAccessTokenAfter(timeout int) {
 	for {
 		time.Sleep(time.Second * time.Duration(timeout))
-		if _, err := c.GetAccessToken(); err != nil {
+		if t, err := c.GetAccessToken(); err != nil {
 			return
+		} else {
+			if t != c.accessToken {
+				c.accessToken = t
+			}
 		}
 	}
 }

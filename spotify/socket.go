@@ -1,10 +1,11 @@
-package websocket
+package spotify
 
 import (
 	"fmt"
 	"sync"
 	"time"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
 )
 
@@ -14,29 +15,35 @@ const (
 	pingWait = 20 * time.Second
 )
 
-type Websocket struct {
-	Send      chan *Event
-	On        <-chan []byte
-	writeLock sync.Mutex
+var ticker = time.NewTicker(pingWait)
+
+type ClientSocket struct {
+	send chan *SocketEvent
+	on   <-chan []byte
+	mu   sync.Mutex
 }
 
-func New() *Websocket {
-	return &Websocket{
-		Send: make(chan *Event),
-		On:   make(<-chan []byte),
+func (c *Client) UpdateStatuLoop() {
+	for {
+		c.socket.send <- &SocketEvent{"UPDATE_STATUS", JSON{"isPlaying": true}}
+		time.Sleep(1 * time.Second)
 	}
 }
 
-func (w *Websocket) Setup() func(conn *websocket.Conn) {
-	return func(conn *websocket.Conn) {
-		go w.reader(conn)
-		w.writer(conn)
-	}
+func (c *Client) Socket() fiber.Handler {
+	return websocket.New(
+		func(ws *websocket.Conn) {
+			go c.SocketReader(ws)
+			c.SocketWriter(ws)
+		},
+		websocket.Config{
+			ReadBufferSize:  2048,
+			WriteBufferSize: 2048,
+		})
 }
 
-func (w *Websocket) reader(ws *websocket.Conn) {
+func (c *Client) SocketReader(ws *websocket.Conn) {
 	ws.SetPongHandler(func(string) error {
-		fmt.Println("pong received")
 		ws.SetReadDeadline(time.Now().Add(closeGracePeriod))
 		return nil
 	})
@@ -57,21 +64,23 @@ func (w *Websocket) reader(ws *websocket.Conn) {
 	}
 }
 
-func (w *Websocket) writer(ws *websocket.Conn) {
-	ticker := time.NewTicker(pingWait)
-	defer ticker.Stop()
-	defer ws.Close()
+func (c *Client) CloseSocket(ws *websocket.Conn) {
+	ticker.Stop()
+	ws.Close()
+}
 
+func (c *Client) SocketWriter(ws *websocket.Conn) {
+	defer c.CloseSocket(ws)
 	for {
 		select {
-		case ev, ok := <-w.Send:
+		case ev, ok := <-c.socket.send:
 			if !ok {
 				ws.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
-			w.writeLock.Lock()
+			c.socket.mu.Lock()
 			err := ws.WriteJSON(ev)
-			w.writeLock.Unlock()
+			c.socket.mu.Unlock()
 			if err != nil {
 				fmt.Println("Error while trying to send msg: ", err)
 				return

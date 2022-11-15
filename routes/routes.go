@@ -3,10 +3,12 @@ package routes
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/theamniel/spotify-server/controllers"
-	"github.com/theamniel/spotify-server/services/spotify"
+	"github.com/theamniel/spotify-server/middlewares"
+	"github.com/theamniel/spotify-server/spotify"
 )
 
-func SetupAPI(app *fiber.App, client *spotify.Client) {
+func Setup(app *fiber.App, client *spotify.Client) {
 	app.Get("/now-playing", controllers.GetNowPlaying(client))
 	app.Get("/recently-played", controllers.GetRecentlyPlayed(client))
+	app.Get("/ws", middlewares.WebsocketAuth("localhost:3000"), client.Socket())
 }

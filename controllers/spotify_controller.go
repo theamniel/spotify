@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/theamniel/spotify-server/services/spotify"
+	"github.com/theamniel/spotify-server/spotify"
 )
 
 func GetNowPlaying(client *spotify.Client) fiber.Handler {
