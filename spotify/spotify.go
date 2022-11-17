@@ -15,12 +15,11 @@ const (
 	RECENTLY_PLAYED_ENDPOINT = "https://api.spotify.com/v1/me/player/recently-played"
 )
 
-type Client struct {
+type SpotifyClient struct {
 	refreshToken string
 	accessToken  string
 	clientID     string
 	clientSecret string
-	socket       *ClientSocket
 }
 
 type Config struct {
@@ -29,27 +28,16 @@ type Config struct {
 	RefreshToken string
 }
 
-type AccessTokenPayload struct {
-	AccessToken string `json:"access_token"`
-	TokenType   string `json:"token_type"`
-	ExpiresIn   int    `json:"expires_in"`
-	Scope       string `json:"scope"`
-}
-
-func New(cfg Config) *Client {
-	return &Client{
+func New(cfg Config) *SpotifyClient {
+	return &SpotifyClient{
 		clientID:     cfg.ClientID,
 		clientSecret: cfg.ClientSecret,
 		accessToken:  "",
 		refreshToken: cfg.RefreshToken,
-		socket: &ClientSocket{
-			send: make(chan *SocketEvent),
-			on:   make(<-chan []byte),
-		},
 	}
 }
 
-func (c *Client) GetAccessToken() (string, error) {
+func (c *SpotifyClient) GetAccessToken() (string, error) {
 	f := fiber.AcquireArgs()
 	f.Set("grant_type", "refresh_token")
 	f.Set("refresh_token", c.refreshToken)
@@ -57,7 +45,7 @@ func (c *Client) GetAccessToken() (string, error) {
 	req := fiber.Post(TOKEN_ENDPOINT).Form(f)
 	req.Set("Authorization", fmt.Sprintf("Basic %s", c.encodeBase64(fmt.Sprintf("%s:%s", c.clientID, c.clientSecret))))
 
-	var payload AccessTokenPayload
+	payload := TokenPayload{}
 	if code, _, _ := req.Struct(&payload); code != 200 {
 		return "", errors.New("Errors unknown")
 	}
@@ -66,22 +54,22 @@ func (c *Client) GetAccessToken() (string, error) {
 	return payload.AccessToken, nil
 }
 
-func (c *Client) GetNowPlaying() (string, error) {
-	if len(c.accessToken) < 1 {
-		_, err := c.GetAccessToken()
-		if err != nil {
-			return "", err
-		}
-	}
-
+func (c *SpotifyClient) GetNowPlaying() (*TrackPayload, error) {
 	req := fiber.Get(NOW_PLAYING_ENDPOINT)
 	req.Set("Authorization", fmt.Sprintf("Bearer %s", c.accessToken))
 
-	_, body, _ := req.String()
-	return body, nil
+	payload := TrackPayload{}
+	code, body, _ := req.String()
+	if code >= 204 {
+		payload.IsPlaying = false
+		return &payload, nil
+	}
+	fmt.Println(body)
+
+	return &payload, nil
 }
 
-func (c *Client) GetRecentlyPlayed() (string, error) {
+func (c *SpotifyClient) GetRecentlyPlayed() (string, error) {
 	if len(c.accessToken) < 1 {
 		_, err := c.GetAccessToken()
 		if err != nil {
@@ -96,9 +84,12 @@ func (c *Client) GetRecentlyPlayed() (string, error) {
 	return body, nil
 }
 
-func (c *Client) UpdateAccessTokenAfter(timeout int) {
+func (c *SpotifyClient) UpdateAccessTokenAfter(timeout ...int) {
+	defaultTimeout := 55
+	if len(timeout) > 0 {
+		defaultTimeout = timeout[0]
+	}
 	for {
-		time.Sleep(time.Second * time.Duration(timeout))
 		if t, err := c.GetAccessToken(); err != nil {
 			return
 		} else {
@@ -106,9 +97,10 @@ func (c *Client) UpdateAccessTokenAfter(timeout int) {
 				c.accessToken = t
 			}
 		}
+		time.Sleep(time.Second * time.Duration(defaultTimeout))
 	}
 }
 
-func (c *Client) encodeBase64(str string) string {
+func (c *SpotifyClient) encodeBase64(str string) string {
 	return base64.StdEncoding.EncodeToString([]byte(str))
 }

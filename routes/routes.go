@@ -7,8 +7,8 @@ import (
 	"github.com/theamniel/spotify-server/spotify"
 )
 
-func Setup(app *fiber.App, client *spotify.Client) {
+func Setup(app *fiber.App, client *spotify.SpotifyClient) {
 	app.Get("/now-playing", controllers.GetNowPlaying(client))
 	app.Get("/recently-played", controllers.GetRecentlyPlayed(client))
-	app.Get("/ws", middlewares.WebsocketAuth("localhost:3000"), client.Socket())
+	app.Get("/ws", middlewares.WebsocketCheck(), spotify.Socket(client))
 }

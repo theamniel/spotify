@@ -3,8 +3,8 @@ package spotify
 import "encoding/json"
 
 type SocketEvent struct {
-	T string `json:"t"`
-	D JSON   `json:"d"`
+	T string      `json:"t"`
+	D interface{} `json:"d,omitempty"`
 }
 
 type JSON map[string]interface{}
