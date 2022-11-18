@@ -1,6 +1,7 @@
 package spotify
 
 import (
+	// "errors"
 	"fmt"
 	"sync"
 	"time"
@@ -10,9 +11,7 @@ import (
 )
 
 const (
-	pollRate             = 1000
-	hasFinishedThreshold = 2000
-	hasScrubbedThreshold = 1500
+	pollRate = 1
 
 	closeGracePeriod = 30 * time.Second
 
@@ -27,10 +26,11 @@ type SocketClient struct {
 	done    chan struct{}
 	mu      sync.Mutex
 
-	playerState         *JSON
+	spotifyState        *SpotifyStatus
 	pollRate            int
 	hasSentInitialState bool
 	hasNotifiedTrackEnd bool
+	lastSentError       string
 	poll                func()
 }
 
@@ -41,25 +41,48 @@ func defaultSocketClient(c *SpotifyClient, conn *websocket.Conn) *SocketClient {
 		send:                make(chan *SocketEvent),
 		message:             make(chan *SocketEvent),
 		done:                make(chan struct{}),
-		playerState:         nil,
+		spotifyState:        nil,
 		pollRate:            pollRate,
 		hasSentInitialState: false,
 		hasNotifiedTrackEnd: false,
+		lastSentError:       "nil",
 		poll:                func() {},
 	}
 }
 
 func Socket(client *SpotifyClient) fiber.Handler {
+	go client.UpdateAccessTokenAfter()
 	return websocket.New(func(ws *websocket.Conn) {
 		socket := defaultSocketClient(client, ws)
 		socket.poll = func() {
 			for {
-				if !socket.hasSentInitialState {
-					socket.send <- &SocketEvent{"INITIAL_STATE", JSON{}}
-					socket.hasSentInitialState = true
+				time.Sleep(time.Second * time.Duration(socket.pollRate))
+				spotifyState, err := client.GetSpotifyStatus()
+				if err != nil {
+					socket.handleError(err)
+					continue
 				}
-				time.Sleep(time.Millisecond * time.Duration(socket.pollRate))
-				socket.UpdateStatus()
+
+				if !socket.hasSentInitialState {
+					socket.send <- &SocketEvent{"INITIAL_STATE", spotifyState}
+					socket.spotifyState = spotifyState
+					socket.hasSentInitialState = true
+					continue
+				}
+				// reset poll rate if no errors were encountered
+				socket.pollRate = pollRate
+
+				// Track change
+				if spotifyState.ID != socket.spotifyState.ID {
+					socket.send <- &SocketEvent{"TRACK_CHANGE", spotifyState}
+					socket.hasNotifiedTrackEnd = false
+				}
+
+				// Playing state change
+				if spotifyState.IsPlaying != socket.spotifyState.IsPlaying {
+					socket.send <- &SocketEvent{"PLAYING_STATE", spotifyState.IsPlaying}
+				}
+				socket.spotifyState = spotifyState
 			}
 		}
 
@@ -73,6 +96,20 @@ func Socket(client *SpotifyClient) fiber.Handler {
 	})
 }
 
+func (socket *SocketClient) handleError(err *ErrorResponse) {
+	receivedErr := err.Error.Message
+	if receivedErr != socket.lastSentError {
+		socket.lastSentError = receivedErr
+		socket.send <- &SocketEvent{"ERROR", JSON{"message": receivedErr}}
+	} else {
+		if socket.pollRate < 5 {
+			socket.pollRate = socket.pollRate + 1
+		} else {
+			socket.pollRate = 5
+		}
+	}
+}
+
 func (c *SocketClient) reader() {
 	defer close(c.done)
 	c.conn.SetPongHandler(func(string) error {
@@ -81,20 +118,13 @@ func (c *SocketClient) reader() {
 	})
 
 	for {
-		_, msg, err := c.conn.ReadMessage()
+		_, _, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				fmt.Printf("error: %v\n", err)
 			}
 			break
 		}
-
-		ev, err := NewEventFromBytes(msg)
-		if err != nil {
-			fmt.Printf("Error while trying to convert message from binary to struct: %v\n", err)
-			break
-		}
-		fmt.Println("Received from client: ", ev.T)
 	}
 }
 
@@ -128,15 +158,4 @@ func (c *SocketClient) writer() {
 			}
 		}
 	}
-}
-
-func (c *SocketClient) UpdateStatus() {
-	// track, err := c.GetNowPlaying()
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	c.send <- &SocketEvent{"UPDATE_STATUS", JSON{"isPlaying": false}}
-	// 	return
-	// }
-	c.send <- &SocketEvent{"UPDATE_STATUS", JSON{"isPlaying": false}}
-	// c.send <- &SocketEvent{"UPDATE_STATUS", track}
 }
