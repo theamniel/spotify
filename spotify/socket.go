@@ -80,7 +80,7 @@ func Socket(client *SpotifyClient) fiber.Handler {
 
 				// Playing state change
 				if spotifyState.IsPlaying != socket.spotifyState.IsPlaying {
-					socket.send <- &SocketEvent{"PLAYING_STATE", spotifyState.IsPlaying}
+					socket.send <- &SocketEvent{"TRACK_STATE", JSON{"is_playing": spotifyState.IsPlaying}}
 				}
 				socket.spotifyState = spotifyState
 			}
@@ -94,20 +94,6 @@ func Socket(client *SpotifyClient) fiber.Handler {
 		ReadBufferSize:  2048,
 		WriteBufferSize: 2048,
 	})
-}
-
-func (socket *SocketClient) handleError(err *ErrorResponse) {
-	receivedErr := err.Error.Message
-	if receivedErr != socket.lastSentError {
-		socket.lastSentError = receivedErr
-		socket.send <- &SocketEvent{"ERROR", JSON{"message": receivedErr}}
-	} else {
-		if socket.pollRate < 5 {
-			socket.pollRate = socket.pollRate + 1
-		} else {
-			socket.pollRate = 5
-		}
-	}
 }
 
 func (c *SocketClient) reader() {
@@ -156,6 +142,20 @@ func (c *SocketClient) writer() {
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
+		}
+	}
+}
+
+func (socket *SocketClient) handleError(err *ErrorResponse) {
+	receivedErr := err.Error.Message
+	if receivedErr != socket.lastSentError {
+		socket.lastSentError = receivedErr
+		socket.send <- &SocketEvent{"ERROR", JSON{"message": receivedErr}}
+	} else {
+		if socket.pollRate < 5 {
+			socket.pollRate = socket.pollRate + 1
+		} else {
+			socket.pollRate = 5
 		}
 	}
 }

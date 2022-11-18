@@ -9,10 +9,7 @@ func GetNowPlaying(client *spotify.SpotifyClient) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		payload, err := client.GetNowPlaying()
 		if err != nil {
-			return ctx.Status(500).JSON(fiber.Map{
-				"error":   "Internal error",
-				"message": err,
-			})
+			return ctx.Status(500).JSON(err.Error)
 		}
 		return ctx.Status(200).JSON(payload)
 	}
@@ -20,6 +17,10 @@ func GetNowPlaying(client *spotify.SpotifyClient) fiber.Handler {
 
 func GetRecentlyPlayed(client *spotify.SpotifyClient) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		return ctx.SendStatus(200)
+		payload, err := client.GetRecentlyPlayed()
+		if err != nil {
+			return ctx.Status(500).JSON(err.Error)
+		}
+		return ctx.Status(200).JSON(payload)
 	}
 }
