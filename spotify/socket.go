@@ -86,9 +86,7 @@ func Socket(client *SpotifyClient) fiber.Handler {
 			}
 		}
 
-		go socket.poll()
-		go socket.reader()
-		socket.writer()
+		socket.run()
 	}, websocket.Config{
 		Origins:         []string{"*"},
 		ReadBufferSize:  2048,
@@ -96,8 +94,17 @@ func Socket(client *SpotifyClient) fiber.Handler {
 	})
 }
 
+func (socket *SocketClient) run() {
+	defer func() {
+		close(socket.done)
+		socket.conn.Close()
+	}()
+	go socket.poll()
+	go socket.reader()
+	socket.writer()
+}
+
 func (c *SocketClient) reader() {
-	defer close(c.done)
 	c.conn.SetPongHandler(func(string) error {
 		c.conn.SetReadDeadline(time.Now().Add(closeGracePeriod))
 		return nil
@@ -116,10 +123,7 @@ func (c *SocketClient) reader() {
 
 func (c *SocketClient) writer() {
 	ticker := time.NewTicker(pingWait)
-	defer func() {
-		ticker.Stop()
-		c.conn.Close()
-	}()
+	defer ticker.Stop()
 	for {
 		select {
 		case <-c.done:
@@ -133,7 +137,7 @@ func (c *SocketClient) writer() {
 			err := c.conn.WriteJSON(ev)
 			c.mu.Unlock()
 			if err != nil {
-				fmt.Println("Error while trying to send msg: ", err)
+				fmt.Println(err)
 				return
 			}
 

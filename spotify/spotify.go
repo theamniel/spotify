@@ -146,22 +146,22 @@ func (c *SpotifyClient) GetSpotifyStatus() (*SpotifyStatus, *ErrorResponse) {
 	}
 
 	if now.Item != nil {
-		art := &SpotifyStatusArtist{
-			Name: "",
-			URL:  now.Item.Artists[0].ExternalUrls["spotify"],
-		}
+		artsName := ""
 		for _, val := range now.Item.Artists {
-			if len(art.Name) > 0 {
-				art.Name += "; "
+			if len(artsName) > 0 {
+				artsName += "; "
 			}
-			art.Name += val.Name
+			artsName += val.Name
 		}
 		return &SpotifyStatus{
 			ID:        now.Item.ID,
 			Title:     now.Item.Name,
-			Artist:    art,
 			URL:       now.Item.ExternalUrls["spotify"],
 			IsPlaying: now.IsPlaying,
+			Artist: &SpotifyStatusArtist{
+				Name: artsName,
+				URL:  now.Item.Artists[0].ExternalUrls["spotify"],
+			},
 			Album: &SpotifyStatusAlbum{
 				Name:   now.Item.Album.Name,
 				URL:    now.Item.Album.ExternalUrls["spotify"],
@@ -175,23 +175,23 @@ func (c *SpotifyClient) GetSpotifyStatus() (*SpotifyStatus, *ErrorResponse) {
 		return nil, err
 	}
 	track := last.Items[0].Track
-	art := &SpotifyStatusArtist{
-		Name: "",
-		URL:  track.Artists[0].ExternalUrls["spotify"],
-	}
+	artsName := ""
 	for _, val := range track.Artists {
-		if len(art.Name) > 0 {
-			art.Name += "; "
+		if len(artsName) > 0 {
+			artsName += "; "
 		}
-		art.Name += val.Name
+		artsName += val.Name
 	}
 	return &SpotifyStatus{
 		ID:        track.ID,
 		Title:     track.Name,
-		Artist:    art,
 		URL:       track.ExternalUrls["spotify"],
 		IsPlaying: false,
 		Timestamp: last.Items[0].PlayedAt,
+		Artist: &SpotifyStatusArtist{
+			Name: artsName,
+			URL:  track.Artists[0].ExternalUrls["spotify"],
+		},
 		Album: &SpotifyStatusAlbum{
 			Name:   track.Album.Name,
 			URL:    track.Album.ExternalUrls["spotify"],
