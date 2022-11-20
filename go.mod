@@ -3,6 +3,7 @@ module github.com/theamniel/spotify-server
 go 1.19
 
 require (
+	github.com/BurntSushi/toml v1.2.1
 	github.com/gofiber/fiber/v2 v2.39.0
 	github.com/gofiber/websocket/v2 v2.1.1
 )

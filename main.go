@@ -12,6 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/theamniel/spotify-server/controllers"
 	"github.com/theamniel/spotify-server/middlewares"
+	"github.com/theamniel/spotify-server/services/config"
 	"github.com/theamniel/spotify-server/services/spotify"
 )
 
@@ -20,40 +21,48 @@ func init() {
 }
 
 func main() {
-	client := spotify.New(spotify.Config{
-		ClientID:     os.Getenv("CLIENT_ID"),
-		ClientSecret: os.Getenv("CLIENT_SECRET"),
-		RefreshToken: os.Getenv("REFRESH_TOKEN"),
-	})
+	cfg, err := config.Load()
+	if err != nil {
+		log.Panic(err)
+	}
+
+	client := spotify.New(cfg.Spotify)
 
 	app := fiber.New(fiber.Config{
 		AppName:               "Spotify Server",
 		DisableStartupMessage: true,
-		StrictRouting:         true,
-		CaseSensitive:         true,
-		UnescapePath:          true,
+		StrictRouting:         cfg.App.StrictRouting,
+		CaseSensitive:         cfg.App.CaseSensitive,
+		UnescapePath:          cfg.App.UnescapePath,
+		Prefork:               cfg.App.Prefork,
+		BodyLimit:             cfg.App.Limit << 20,
 	})
 
-	app.Use(recover.New())
+	/* --- MIDDLEWARES ---*/
+	if cfg.Middleware.Recover {
+		app.Use(recover.New())
+	}
 
-	app.Use(logger.New(logger.Config{
-		TimeZone: "America/Caracas",
-	}))
+	if cfg.Middleware.Logger {
+		app.Use(logger.New(logger.Config{
+			TimeZone: "America/Caracas",
+		}))
+	}
 
 	/* --- ROUTES --- */
 	app.Get("/now-playing", controllers.GetNowPlaying(client))
 	app.Get("/recently-played", controllers.GetRecentlyPlayed(client))
-	app.Get("/socket", middlewares.WebsocketCheck(), spotify.Socket(client))
+	app.Get("/socket", middlewares.WebsocketCheck(), spotify.Socket(client, cfg.Socket))
 	/* 404 */
 	app.Use(func(c *fiber.Ctx) error {
 		return c.Redirect("https://github.com/TheAmniel", 308)
 	})
 
 	if !fiber.IsChild() {
-		log.Println("Running Socket server on \":5050\"")
+		log.Printf("Running Socket server on \"%s:%s\"\n", cfg.Server.Host, cfg.Server.Port)
 	}
 	go func() {
-		if err := app.Listen(fmt.Sprintf("%s:%s", "", "5050")); err != nil {
+		if err := app.Listen(fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port)); err != nil {
 			log.Fatal(err)
 		}
 	}()

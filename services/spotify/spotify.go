@@ -1,13 +1,14 @@
 package spotify
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/theamniel/spotify-server/services/config"
+	"github.com/theamniel/spotify-server/utils"
 )
 
 const (
@@ -25,13 +26,7 @@ type SpotifyClient struct {
 	Socket       *SpotifySocket
 }
 
-type Config struct {
-	ClientID     string
-	ClientSecret string
-	RefreshToken string
-}
-
-func New(cfg Config) *SpotifyClient {
+func New(cfg *config.SpotifyConfig) *SpotifyClient {
 	return &SpotifyClient{
 		clientID:     cfg.ClientID,
 		clientSecret: cfg.ClientSecret,
@@ -47,7 +42,7 @@ func (c *SpotifyClient) GetAccessToken() (*Token, *SpotifyApiError) {
 	f.Set("refresh_token", c.refreshToken)
 
 	req := fiber.Post(TOKEN_ENDPOINT).Form(f)
-	req.Set("Authorization", fmt.Sprintf("Basic %s", c.encodeBase64(fmt.Sprintf("%s:%s", c.clientID, c.clientSecret))))
+	req.Set("Authorization", fmt.Sprintf("Basic %s", utils.EncodeToBase64(fmt.Sprintf("%s:%s", c.clientID, c.clientSecret))))
 
 	code, body, _ := req.Bytes()
 	if code >= 400 {
@@ -165,8 +160,4 @@ func (c *SpotifyClient) GetSpotifyStatus() (*SocketData, *SpotifyApiError) {
 			ArtURL: track.Album.Images[0].URL,
 		},
 	}, nil
-}
-
-func (c *SpotifyClient) encodeBase64(str string) string {
-	return base64.StdEncoding.EncodeToString([]byte(str))
 }

@@ -59,7 +59,7 @@ type TrackLink struct {
 	URI          string            `json:"uri"`
 }
 
-// The Track struct describes a "Simple" Track object as defined by the Spotify Web API
+// The Track struct describes a Track object as defined by the Spotify Web API
 type Track struct {
 	Album            *Album            `json:"album"`
 	Artists          []Artist          `json:"artists"`
@@ -96,8 +96,7 @@ type TrackPaged struct {
 }
 
 /*----------- PLAYER ------------*/
-// The PlayerContext struct describes the current context of what is playing on the active device.  ex. The context could be an "album" which can then be derived from the URI
-// The can be used to determine that "One More Time by Daft Punk" that the user is listening to is actually in a user created playlist and that the context is NOT the album version, for instance
+// The PlayerContext struct describes the current context of what is playing on the active device.
 type PlayerContext struct {
 	Type         string            `json:"type"`
 	Href         string            `json:"href"`
@@ -107,7 +106,7 @@ type PlayerContext struct {
 
 // The PlayerState struct describes the current playback state of Spotify
 type PlayerState struct {
-	Device       interface{}    `json:"device"`
+	Device       *Device        `json:"device"`
 	RepeatState  string         `json:"repeat_state"`
 	ShuffleState bool           `json:"shuffle_state"`
 	Context      *PlayerContext `json:"context"`
@@ -115,6 +114,16 @@ type PlayerState struct {
 	ProgressMs   int            `json:"progress_ms"`
 	IsPlaying    bool           `json:"is_playing"`
 	Item         *Track         `json:"item"`
+}
+
+// The Device struct describes an available playback device
+type Device struct {
+	ID            string `json:"id"`
+	IsActive      bool   `json:"is_active"`
+	IsRestricted  bool   `json:"is_restricted"`
+	Name          string `json:"name"`
+	Type          string `json:"type"`
+	VolumePercent int    `json:"volume_percent"`
 }
 
 /*-------------- SOCKET API ------------*/

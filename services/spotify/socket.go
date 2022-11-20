@@ -7,6 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
+	"github.com/theamniel/spotify-server/services/config"
 	"github.com/theamniel/spotify-server/services/socket"
 )
 
@@ -21,7 +22,7 @@ type SpotifySocket struct {
 	spotifyStatus *SocketData
 }
 
-func Socket(client *SpotifyClient) fiber.Handler {
+func Socket(client *SpotifyClient, cfg *config.SocketConfig) fiber.Handler {
 	client.Socket = &SpotifySocket{
 		clients:       make(map[*socket.SocketClient]bool),
 		broadcast:     make(chan *socket.SocketMessage),
@@ -44,9 +45,9 @@ func Socket(client *SpotifyClient) fiber.Handler {
 		socketClient.Run()
 		client.Socket.unregister <- socketClient
 	}, websocket.Config{
-		Origins:         []string{"*"},
-		ReadBufferSize:  2048,
-		WriteBufferSize: 2048,
+		Origins:         cfg.Origins,
+		ReadBufferSize:  cfg.ReadBufferSize,
+		WriteBufferSize: cfg.WriteBufferSize,
 	})
 }
 
