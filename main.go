@@ -5,18 +5,14 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
-	"time"
 
-	// _ "github.com/BurntSushi/toml"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cache"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/theamniel/spotify-server/controllers"
 	"github.com/theamniel/spotify-server/middlewares"
-	"github.com/theamniel/spotify-server/spotify"
+	"github.com/theamniel/spotify-server/services/spotify"
 )
 
 func init() {
@@ -31,26 +27,17 @@ func main() {
 	})
 
 	app := fiber.New(fiber.Config{
-		AppName:               "Spotify Websocket Server",
+		AppName:               "Spotify Server",
 		DisableStartupMessage: true,
 		StrictRouting:         true,
 		CaseSensitive:         true,
 		UnescapePath:          true,
 	})
 
-	app.Use(logger.New(logger.Config{
-		TimeZone: "America/Caracas",
-	}))
-
 	app.Use(recover.New())
 
-	app.Use(cache.New(cache.Config{
-		CacheHeader:  "X-Cache-Status",
-		Expiration:   7 * 24 * time.Hour,
-		CacheControl: true,
-		Next: func(c *fiber.Ctx) bool {
-			return strings.Contains(c.Route().Path, "/socket")
-		},
+	app.Use(logger.New(logger.Config{
+		TimeZone: "America/Caracas",
 	}))
 
 	/* --- ROUTES --- */
@@ -66,7 +53,6 @@ func main() {
 		log.Println("Running Socket server on \":5050\"")
 	}
 	go func() {
-		// ws://localhost:5050/socket
 		if err := app.Listen(fmt.Sprintf("%s:%s", "", "5050")); err != nil {
 			log.Fatal(err)
 		}
