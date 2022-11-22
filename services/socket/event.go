@@ -31,9 +31,9 @@ const (
 )
 
 type SocketMessage struct {
-	OP int         `json:"op"`
-	T  string      `json:"t,omitempty"`
-	D  interface{} `json:"d,omitempty"`
+	OP int    `json:"op"`
+	T  string `json:"t,omitempty"`
+	D  any    `json:"d,omitempty"`
 }
 
-type JSON map[string]interface{}
+type JSON map[string]any

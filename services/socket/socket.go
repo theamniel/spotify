@@ -20,7 +20,7 @@ type Socket struct {
 	Unregister chan *SocketClient
 
 	mu    sync.RWMutex
-	state interface{}
+	state any
 }
 
 func New() *Socket {
@@ -42,13 +42,13 @@ func (s *Socket) Handle(conn *websocket.Conn) {
 	s.Unregister <- client
 }
 
-func (s *Socket) SetState(val interface{}) {
+func (s *Socket) SetState(val any) {
 	s.mu.Lock()
 	s.state = val
 	s.mu.Unlock()
 }
 
-func (s *Socket) GetState() interface{} {
+func (s *Socket) GetState() any {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.state
