@@ -19,8 +19,8 @@ type Socket struct {
 	Register   chan *SocketClient
 	Unregister chan *SocketClient
 
-	mu     sync.RWMutex
-	status interface{}
+	mu    sync.RWMutex
+	state interface{}
 }
 
 func New() *Socket {
@@ -31,7 +31,7 @@ func New() *Socket {
 		Broadcast:  make(chan *SocketMessage),
 		Register:   make(chan *SocketClient),
 		Unregister: make(chan *SocketClient),
-		status:     nil,
+		state:      nil,
 	}
 }
 
@@ -42,22 +42,22 @@ func (s *Socket) Handle(conn *websocket.Conn) {
 	s.Unregister <- client
 }
 
-func (s *Socket) SetStatus(val interface{}) {
+func (s *Socket) SetState(val interface{}) {
 	s.mu.Lock()
-	s.status = val
+	s.state = val
 	s.mu.Unlock()
 }
 
-func (s *Socket) GetStatus() interface{} {
+func (s *Socket) GetState() interface{} {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.status
+	return s.state
 }
 
-func (s *Socket) HasStatus() bool {
+func (s *Socket) HasState() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.status != nil
+	return s.state != nil
 }
 
 func (s *Socket) Run() {
@@ -96,23 +96,23 @@ func (s *Socket) WatchClient(client *SocketClient) {
 		select {
 		case message, ok := <-client.Message:
 			if ok {
-				if message.OP == SocketHeartbeat {
+				if message.OP == SocketInitialize {
+					if !s.Pool.Has(client.ID) {
+						client.Send <- &SocketMessage{SocketDispatch, "INITIAL_STATE", &s.state}
+						s.Pool.Set(client.ID, client)
+						heartbeat.Reset(HeartbeatTimeout)
+					} else {
+						s.Pool.Delete(client.ID)
+						client.Close(4005) // Close: Already authenticated
+						return
+					}
+				} else if message.OP == SocketHeartbeat {
 					if c, ok := s.Pool.Get(client.ID); ok && c != nil {
 						client.Send <- &SocketMessage{SocketHeartbeatACK, "", nil}
 						heartbeat.Reset(HeartbeatTimeout)
 					} else {
 						s.Pool.Delete(client.ID)
 						client.Close(4003) // Close: Not Authenticated.
-						return
-					}
-				} else if message.OP == SocketInitialize {
-					if !s.Pool.Has(client.ID) {
-						client.Send <- &SocketMessage{SocketDispatch, "INIT_STATE", &s.status}
-						s.Pool.Set(client.ID, client)
-						heartbeat.Reset(HeartbeatTimeout)
-					} else {
-						s.Pool.Delete(client.ID)
-						client.Close(4005) // Close: Already authenticated
 						return
 					}
 				} else {

@@ -128,19 +128,19 @@ type Device struct {
 
 /*-------------- SOCKET API ------------*/
 type SocketData struct {
-	Album     *SocketDataAlbum    `json:"album"`
-	Artist    *SocketDataArtist   `json:"artist"`
-	Duration  *SocketDataDuration `json:"duration,omitempty"`
-	ID        string              `json:"id"`
-	IsPlaying bool                `json:"is_playing"`
-	Timestamp string              `json:"timestamp,omitempty"`
-	Title     string              `json:"title"`
-	URL       string              `json:"url"`
+	Album     *SocketDataAlbum     `json:"album"`
+	Artist    *SocketDataArtist    `json:"artist"`
+	ID        string               `json:"id"`
+	IsPlaying bool                 `json:"is_playing"`
+	PlayedAt  string               `json:"played_at,omitempty"`
+	Timestamp *SocketDataTimestamp `json:"timestamp,omitempty"`
+	Title     string               `json:"title"`
+	URL       string               `json:"url"`
 }
 
-type SocketDataDuration struct {
-	Start int `json:"start"`
-	End   int `json:"end"`
+type SocketDataTimestamp struct {
+	Progress int `json:"progress"`
+	Duration int `json:"duration"`
 }
 
 type SocketDataArtist struct {

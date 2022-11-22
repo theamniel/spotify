@@ -122,9 +122,9 @@ func (c *SpotifyClient) GetSpotifyStatus() (*SocketData, *SpotifyApiError) {
 			Title:     now.Item.Name,
 			URL:       now.Item.ExternalUrls["spotify"],
 			IsPlaying: now.IsPlaying,
-			Duration: &SocketDataDuration{
-				Start: now.ProgressMs,
-				End:   now.Item.DurationMs,
+			Timestamp: &SocketDataTimestamp{
+				Progress: now.ProgressMs,
+				Duration: now.Item.DurationMs,
 			},
 			Artist: &SocketDataArtist{
 				Name: strings.Join(artsName, "; "),
@@ -152,7 +152,7 @@ func (c *SpotifyClient) GetSpotifyStatus() (*SocketData, *SpotifyApiError) {
 		Title:     track.Name,
 		URL:       track.ExternalUrls["spotify"],
 		IsPlaying: false,
-		Timestamp: last.Items[0].PlayedAt,
+		PlayedAt:  last.Items[0].PlayedAt,
 		Artist: &SocketDataArtist{
 			Name: strings.Join(artsName, "; "),
 			URL:  track.Artists[0].ExternalUrls["spotify"],
