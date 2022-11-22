@@ -1,7 +1,6 @@
 package config
 
 import (
-	"io"
 	"os"
 
 	"github.com/BurntSushi/toml"
@@ -25,18 +24,13 @@ func LoadFile(fileName string) (*Config, error) {
 		return nil, err
 	}
 
-	file, err := os.Open(fileName)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-	fileBytes, err := io.ReadAll(file)
+	data, err := os.ReadFile(fileName)
 	if err != nil {
 		return nil, err
 	}
 
 	var cfg Config
-	if err := toml.Unmarshal(utils.ReplaceValues(fileBytes), &cfg); err != nil {
+	if err := toml.Unmarshal(utils.ReplaceValues(data), &cfg); err != nil {
 		return nil, err
 	}
 	return &cfg, nil
