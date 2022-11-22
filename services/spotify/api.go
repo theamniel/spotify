@@ -110,7 +110,7 @@ type PlayerState struct {
 	RepeatState  string         `json:"repeat_state"`
 	ShuffleState bool           `json:"shuffle_state"`
 	Context      *PlayerContext `json:"context"`
-	Timestamp    int            `json:"timestamp"`
+	Timestamp    int64          `json:"timestamp"`
 	ProgressMs   int            `json:"progress_ms"`
 	IsPlaying    bool           `json:"is_playing"`
 	Item         *Track         `json:"item"`

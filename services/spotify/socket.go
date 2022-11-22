@@ -1,6 +1,7 @@
 package spotify
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -38,42 +39,44 @@ func (client *SpotifyClient) poll() {
 				}
 				continue
 			}
-			if client.Socket.HasState() {
-				if spotifyStatus.IsPlaying && client.pollRate > 1 {
-					client.pollRate = 1
-				} else {
-					client.pollRate = 1
-				}
-				state := client.Socket.GetState().(*SocketData)
 
-				// ------ TRACK CHANGE -----
-				if spotifyStatus.ID != state.ID {
+			if !client.Socket.HasState() {
+				client.Socket.SetState(spotifyStatus)
+				continue
+			}
+
+			if spotifyStatus.IsPlaying && client.pollRate > 1 {
+				client.pollRate = 1
+			}
+			state := client.Socket.GetState().(*SocketData)
+
+			// ------ TRACK CHANGE -----
+			if spotifyStatus.ID != state.ID {
+				client.Socket.Broadcast <- &socket.SocketMessage{
+					socket.SocketDispatch,
+					"TRACK_CHANGE",
+					spotifyStatus,
+				}
+			}
+
+			// -------- PLAYING STATE CHANGE -------
+			if spotifyStatus.IsPlaying != state.IsPlaying {
+				if !spotifyStatus.IsPlaying && len(spotifyStatus.PlayedAt) > 0 && spotifyStatus.PlayedAt != state.PlayedAt {
 					client.Socket.Broadcast <- &socket.SocketMessage{
 						socket.SocketDispatch,
-						"TRACK_CHANGE",
-						spotifyStatus,
+						"TRACK_STATE",
+						&socket.JSON{
+							"is_playing": spotifyStatus.IsPlaying,
+							"played_at":  spotifyStatus.PlayedAt,
+						},
 					}
-				}
-
-				// -------- PLAYING STATE CHANGE -------
-				if spotifyStatus.IsPlaying != state.IsPlaying {
-					if !spotifyStatus.IsPlaying && len(spotifyStatus.PlayedAt) > 0 && spotifyStatus.PlayedAt != state.PlayedAt {
-						client.Socket.Broadcast <- &socket.SocketMessage{
-							socket.SocketDispatch,
-							"TRACK_STATE",
-							&socket.JSON{
-								"is_playing": spotifyStatus.IsPlaying,
-								"played_at":  spotifyStatus.PlayedAt,
-							},
-						}
-					} else {
-						client.Socket.Broadcast <- &socket.SocketMessage{
-							socket.SocketDispatch,
-							"TRACK_STATE",
-							&socket.JSON{
-								"is_playing": spotifyStatus.IsPlaying,
-							},
-						}
+				} else {
+					client.Socket.Broadcast <- &socket.SocketMessage{
+						socket.SocketDispatch,
+						"TRACK_STATE",
+						&socket.JSON{
+							"is_playing": spotifyStatus.IsPlaying,
+						},
 					}
 				}
 			}

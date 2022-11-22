@@ -35,6 +35,7 @@ func New(cfg *config.SpotifyConfig) *SpotifyClient {
 		clientSecret: cfg.ClientSecret,
 		accessToken:  "",
 		refreshToken: cfg.RefreshToken,
+		pollRate:     1,
 		Socket:       nil,
 	}
 }
