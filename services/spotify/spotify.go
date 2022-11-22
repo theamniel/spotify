@@ -8,6 +8,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/theamniel/spotify-server/services/config"
+	"github.com/theamniel/spotify-server/services/socket"
 	"github.com/theamniel/spotify-server/utils"
 )
 
@@ -19,11 +20,13 @@ const (
 )
 
 type SpotifyClient struct {
+	Socket *socket.Socket
+
+	pollRate     time.Duration
 	refreshToken string
 	accessToken  string
 	clientID     string
 	clientSecret string
-	Socket       *SpotifySocket
 }
 
 func New(cfg *config.SpotifyConfig) *SpotifyClient {
