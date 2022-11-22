@@ -1,47 +1,42 @@
 package config
 
 import (
-	"bytes"
 	"io"
 	"os"
-	"regexp"
 
 	"github.com/BurntSushi/toml"
 	"github.com/theamniel/spotify-server/utils"
 )
 
-var Envars = regexp.MustCompile(`[#]\{([\w\.]+)\}`)
-
 func Load() (*Config, error) {
-	exePathName, err := utils.ExePathName()
+	dir, file, err := utils.Executable()
 	if err != nil {
 		return nil, err
 	}
-	exePathName += ".toml"
+	return LoadFile(dir + file + ".toml")
+}
 
-	if _, err := os.Stat(exePathName); err != nil {
+func LoadFile(fileName string) (*Config, error) {
+	if fileName[len(fileName)-5:] != ".toml" {
+		fileName += ".toml"
+	}
+
+	if _, err := os.Stat(fileName); err != nil {
 		return nil, err
 	}
 
-	file, err := os.Open(exePathName)
+	file, err := os.Open(fileName)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
-	dataFile, err := io.ReadAll(file)
+	fileBytes, err := io.ReadAll(file)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, values := range Envars.FindAllSubmatch(dataFile, -1) {
-		env := os.Getenv(string(values[1]))
-		if env != "" {
-			dataFile = bytes.ReplaceAll(dataFile, values[0], []byte(env))
-		}
-	}
-
 	var cfg Config
-	if err := toml.Unmarshal(dataFile, &cfg); err != nil {
+	if err := toml.Unmarshal(utils.ReplaceValues(fileBytes), &cfg); err != nil {
 		return nil, err
 	}
 	return &cfg, nil

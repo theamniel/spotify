@@ -1,23 +1,37 @@
 package utils
 
 import (
+	"bytes"
 	"encoding/base64"
 	"os"
-	"runtime"
-	"strings"
+	"path/filepath"
+	"regexp"
 )
+
+var values = regexp.MustCompile(`[#]\{([\w\.]+)\}`)
+
+func ReplaceValues(bsrc []byte) []byte {
+	for _, items := range values.FindAllSubmatch(bsrc, -1) {
+		env := os.Getenv(string(items[1]))
+		if env != "" {
+			bsrc = bytes.ReplaceAll(bsrc, items[0], []byte(env))
+		}
+	}
+	return bsrc
+}
 
 func EncodeToBase64(str string) string {
 	return base64.StdEncoding.EncodeToString([]byte(str))
 }
 
-func ExePathName() (string, error) {
-	exePath, err := os.Executable()
+func Executable() (string, string, error) {
+	executable, err := os.Executable()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	if runtime.GOOS == "windows" {
-		return strings.Replace(exePath, ".exe", "", 1), nil
+	dir, file := filepath.Split(executable)
+	if file[len(file)-4:] == ".exe" {
+		file = file[:len(file)-4]
 	}
-	return exePath, nil
+	return dir, file, nil
 }
