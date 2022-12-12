@@ -108,11 +108,11 @@ func (s *Socket) WatchClient(client *SocketClient) {
 					}
 				} else if message.OP == SocketHeartbeat {
 					if c, ok := s.Pool.Get(client.ID); ok && c != nil {
+						heartbeat.Reset(HeartbeatTimeout)
 						client.Send <- &SocketMessage{SocketHeartbeatACK, "", nil}
 						if abnormalHeartbeat {
 							abnormalHeartbeat = false // reset
 						}
-						heartbeat.Reset(HeartbeatTimeout)
 					} else {
 						s.Pool.Delete(client.ID)
 						client.Close(CloseNotAuthenticated)
