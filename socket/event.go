@@ -1,5 +1,7 @@
 package socket
 
+import "encoding/json"
+
 const (
 	// Default Opcode when receiving core events [RECEIVE ONLY]
 	SocketDispatch = 0
@@ -16,19 +18,23 @@ const (
 	// Sends this when clients sends heartbeat [RECEIVE ONLY]
 	SocketHeartbeatACK = 4
 
+	// TODO: implement
 	// Sends this when server request reconnect [RECEIVE ONLY]
 	SocketReconnect = 5
 
-	// This is what the client sends with session_id when receiving opcode 4  [SEND ONLY]
+	// This is what the client sends with session_id when receiving opcode 5  [SEND ONLY]
 	SocketResume = 6
 )
 
 const (
 	CloseInvalidOpcode        = 4001
 	CloseInvalidMessage       = 4002
-	CloseAlreadyAuthenticated = 4005
 	CloseNotAuthenticated     = 4003
+	CloseByServerRequest      = 4004
+	CloseAlreadyAuthenticated = 4005
 )
+
+type JSON map[string]any
 
 type SocketMessage struct {
 	OP int    `json:"op"`
@@ -36,4 +42,10 @@ type SocketMessage struct {
 	D  any    `json:"d,omitempty"`
 }
 
-type JSON map[string]any
+func (sm *SocketMessage) ToBytes() []byte {
+	if bytes, err := json.Marshal(sm); err != nil {
+		return nil
+	} else {
+		return bytes
+	}
+}

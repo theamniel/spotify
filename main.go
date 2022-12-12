@@ -5,15 +5,15 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/theamniel/spotify-server/controllers"
+	"github.com/theamniel/spotify-server/config"
 	"github.com/theamniel/spotify-server/middlewares"
-	"github.com/theamniel/spotify-server/services/config"
-	"github.com/theamniel/spotify-server/services/spotify"
+	"github.com/theamniel/spotify-server/spotify"
 )
 
 func init() {
@@ -31,27 +31,41 @@ func main() {
 	app := fiber.New(fiber.Config{
 		AppName:               "Spotify Server",
 		DisableStartupMessage: true,
-		StrictRouting:         cfg.App.StrictRouting,
-		CaseSensitive:         cfg.App.CaseSensitive,
-		UnescapePath:          cfg.App.UnescapePath,
-		Prefork:               cfg.App.Prefork,
-		BodyLimit:             cfg.App.Limit << 20,
+		StrictRouting:         false,
+		CaseSensitive:         false,
+		UnescapePath:          true,
+		Prefork:               cfg.Server.Prefork,
+		BodyLimit:             5 << 20,
 	})
 
 	/* --- MIDDLEWARES ---*/
-	if cfg.Middleware.Recover {
-		app.Use(recover.New())
-	}
-
-	if cfg.Middleware.Logger {
-		app.Use(logger.New(logger.Config{
-			TimeZone: "America/Caracas",
-		}))
-	}
+	app.Use(recover.New())
+	app.Use(logger.New(logger.Config{
+		TimeZone: "America/Caracas",
+	}))
 
 	/* --- ROUTES --- */
-	app.Get("/now-playing", controllers.GetNowPlaying(client))
-	app.Get("/recently-played", controllers.GetRecentlyPlayed(client))
+	app.Get("/now-playing", func(c *fiber.Ctx) error {
+		payload, err := client.GetNowPlaying()
+		if err != nil {
+			return c.Status(500).JSON(err)
+		}
+		if strings.Contains(c.OriginalURL(), "?open") && payload.Item != nil {
+			return c.Redirect(payload.Item.ExternalUrls["spotify"], 308)
+		}
+		return c.Status(200).JSON(payload)
+	})
+	app.Get("/recently-played", func(c *fiber.Ctx) error {
+		payload, err := client.GetRecentlyPlayed()
+		if err != nil {
+			return c.Status(500).JSON(err)
+		}
+
+		if strings.Contains(c.OriginalURL(), "?open") {
+			return c.Redirect(payload.Items[0].Track.ExternalUrls["spotify"], 308)
+		}
+		return c.Status(200).JSON(payload)
+	})
 	app.Get("/socket", middlewares.WebsocketCheck(), spotify.Socket(client, cfg.Socket))
 	/* 404 */
 	app.Use(func(c *fiber.Ctx) error {

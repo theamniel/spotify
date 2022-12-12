@@ -72,7 +72,7 @@ func (s *Socket) Run() {
 		case client := <-s.Register:
 			if s.Pool.Has(client.ID) {
 				s.Pool.Delete(client.ID)
-				client.Close(4005) // Close: Already authenticated.
+				client.Close(CloseAlreadyAuthenticated)
 			} else {
 				client.Send <- &SocketMessage{SocketHello, "", &JSON{
 					"heartbeat_interval": HeartbeatTimeout / time.Millisecond,
@@ -90,7 +90,7 @@ func (s *Socket) Run() {
 
 func (s *Socket) WatchClient(client *SocketClient) {
 	abnormalHeartbeat := false
-	heartbeat := time.NewTicker(InitializeTimeout) // first time, 10 sec (wait for SocketInitialize Opcode)
+	heartbeat := time.NewTicker(InitializeTimeout)
 	defer heartbeat.Stop()
 	for {
 		select {
@@ -103,7 +103,7 @@ func (s *Socket) WatchClient(client *SocketClient) {
 						heartbeat.Reset(HeartbeatTimeout)
 					} else {
 						s.Pool.Delete(client.ID)
-						client.Close(4005) // Close: Already authenticated
+						client.Close(CloseAlreadyAuthenticated)
 						return
 					}
 				} else if message.OP == SocketHeartbeat {
@@ -112,35 +112,35 @@ func (s *Socket) WatchClient(client *SocketClient) {
 						heartbeat.Reset(HeartbeatTimeout)
 					} else {
 						s.Pool.Delete(client.ID)
-						client.Close(4003) // Close: Not Authenticated.
+						client.Close(CloseNotAuthenticated)
 						return
 					}
 				} else {
 					s.Unregister <- client
-					client.Close(4001) // Close: Received Invalid Opcode
+					client.Close(CloseInvalidOpcode)
 					return
 				}
 			} else {
 				s.Unregister <- client
-				client.Close(1000) // Close: connection close/internal server error
+				client.Close(1011) // Close: internal server error
 				return
 			}
 		case <-heartbeat.C:
 			if s.Pool.Has(client.ID) { // client already register...
 				if !abnormalHeartbeat {
-					// client does send heartbeat
+					// client does not send heartbeat
 					client.Send <- &SocketMessage{SocketHeartbeat, "", nil}
 					abnormalHeartbeat = true
 					heartbeat.Reset(HeartbeatWaitTimeout) // 5 sec more...
 					continue
 				} else {
 					s.Pool.Delete(client.ID)
-					client.Close(1006) //Close: connection reset by peer
+					client.Close(CloseByServerRequest)
 					return
 				}
 			}
 			s.Unregister <- client
-			client.Close(1006) // Close: connection reset by peer
+			client.Close(CloseByServerRequest)
 			return
 		}
 	}

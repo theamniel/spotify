@@ -93,7 +93,7 @@ func (socket *SocketClient) reader(ctx context.Context) {
 			// We have a message and we fire the message event
 			var event SocketMessage
 			if err := json.Unmarshal(message, &event); err != nil {
-				socket.Close(4002) // Close: Received invalid message
+				socket.Close(CloseInvalidMessage)
 				return
 			}
 			socket.Message <- &event
@@ -114,11 +114,11 @@ func (socket *SocketClient) writer(ctx context.Context) {
 				socket.RUnlock()
 
 				if err != nil {
-					socket.Close(1000)
+					socket.Close(1011)
 					return
 				}
 			} else {
-				socket.Close(1000)
+				socket.Close(1011)
 				return
 			}
 		case <-ctx.Done():

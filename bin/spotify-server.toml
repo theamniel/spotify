@@ -1,20 +1,8 @@
-[app]
-limit = 15
-prefork = false
-strictRouting = true
-caseSensitive = true
-unescapePath = true
-
-[middleware]
-cache = true
-compress = true
-logger = true
-recover = true
-
 [server]
 host = "localhost"
 port = "5050"
-token = "123456789"
+token = "#{SPOTIFY_SERVER_TOKEN}"
+prefork = false
 
 [socket]
 origins = ["*"]

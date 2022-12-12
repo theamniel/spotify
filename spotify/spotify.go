@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/theamniel/spotify-server/services/config"
-	"github.com/theamniel/spotify-server/services/socket"
+	"github.com/theamniel/spotify-server/config"
+	"github.com/theamniel/spotify-server/socket"
 	"github.com/theamniel/spotify-server/utils"
 )
 

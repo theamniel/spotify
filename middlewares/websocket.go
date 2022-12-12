@@ -6,10 +6,10 @@ import (
 )
 
 func WebsocketCheck() fiber.Handler {
-	return func(ctx *fiber.Ctx) error {
-		if !websocket.IsWebSocketUpgrade(ctx) {
-			return ctx.Status(426).SendString("Upgrade required.")
+	return func(c *fiber.Ctx) error {
+		if !websocket.IsWebSocketUpgrade(c) {
+			return c.Status(426).SendString("Upgrade required.")
 		}
-		return ctx.Next()
+		return c.Next()
 	}
 }

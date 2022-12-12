@@ -1,13 +1,12 @@
 package spotify
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
-	"github.com/theamniel/spotify-server/services/config"
-	"github.com/theamniel/spotify-server/services/socket"
+	"github.com/theamniel/spotify-server/config"
+	"github.com/theamniel/spotify-server/socket"
 )
 
 func Socket(client *SpotifyClient, cfg *config.SocketConfig) fiber.Handler {

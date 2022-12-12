@@ -1,4 +1,21 @@
+# Logs
+logs
+*.log
+
+**/*.release
+*.local
+**/*.db
 **/*.exe
-**/*.ps1
-**/*.cache
+**/*.ps*1
 **/*.json
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

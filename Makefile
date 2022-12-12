@@ -1,7 +1,4 @@
 # Basic commands
-GOCMD = go
-GOBUILD = $(GOCMD) build
-GOCLEAN = $(GOCMD) clean
 CLEAN	:= rm -f $(BINARY_OUTPUT)
 ifeq ($(OS), Windows_NT)
 	CLEAN := del /q/s $(BINARY_OUTPUT) 2>&1 | exit 0
@@ -23,13 +20,13 @@ default: clean fmt build run
 
 # App basic commands
 clean:
-	@$(GOCLEAN) -i . && $(CLEAN)
+	@go clean -i . && $(CLEAN)
 
 fmt:
 	@gofmt -s -w -l .
 
 build:
-	@$(GOBUILD) -o $(BINARY_OUTPUT) .
+	@go build -o $(BINARY_OUTPUT) .
 
 run:
 	@$(BINARY_OUTPUT)
