@@ -4,17 +4,10 @@
 
 The websocket is available at `ws://localhost:5050/socket`.
 
-Once connected, you will receive `Opcode 1: Hello` which will contain `heartbeat_interval` in the data field. You should set a repeating interval for the time specified in `heartbeat_interval` which should send `Opcode 3: Heartbeat` on the interval.
+Once connected, you will receive `Opcode 1: Hello`.
 
 You should send `Opcode 2: Initialize` immediately after receiving Opcode 1.
 
-Example of `Opcode 2: Initialize`:
-
-```json
-{
-  "op": 2
-}
-```
 ### List of Opcodes
 | Opcode | Name         | Description                                             | Client Send/Receive |
 | ------ | ------------ | ------------------------------------------------------- | ---------------- |
