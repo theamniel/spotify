@@ -17,28 +17,18 @@ import (
 	"github.com/theamniel/spotify-server/spotify"
 )
 
-type newLogger struct{}
-
-var timeZone = "America/Caracas"
-
-func (l *newLogger) Write(p []byte) (n int, err error) {
-	loc, _ := time.LoadLocation(timeZone)
-
-	return fmt.Print("[" + time.Now().In(loc).Format("15:04:05") + "] " + string(p))
-}
-
-func init() {
-	log.SetFlags(0)
-	log.SetOutput(new(newLogger))
-}
-
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
 		log.Panic(err)
 	}
 
-	timeZone = cfg.Server.TimeZone
+	timeZone := cfg.Server.TimeZone
+
+	if loc, locErr := time.LoadLocation(timeZone); locErr == nil {
+		log.SetFlags(0)
+		log.SetPrefix("[" + time.Now().In(loc).Format("15:04:05") + "] ")
+	}
 
 	client := spotify.New(cfg.Spotify)
 
