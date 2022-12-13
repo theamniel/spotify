@@ -9,7 +9,7 @@ import (
 
 const (
 	HeartbeatWaitTimeout = 5 * time.Second
-	HeartbeatTimeout     = 30 * time.Second
+	HeartbeatTimeout     = 35 * time.Second
 	InitializeTimeout    = 15 * time.Second
 )
 
@@ -74,10 +74,7 @@ func (s *Socket) Run() {
 				s.Pool.Delete(client.ID)
 				client.Close(CloseAlreadyAuthenticated)
 			} else {
-				client.Send <- &SocketMessage{SocketHello, "", &JSON{
-					"heartbeat_interval": HeartbeatTimeout / time.Millisecond,
-					"session_id":         client.ID,
-				}}
+				client.Send <- &SocketMessage{OP: SocketHello}
 				go s.WatchClient(client)
 			}
 		case client := <-s.Unregister:
@@ -89,9 +86,9 @@ func (s *Socket) Run() {
 }
 
 func (s *Socket) WatchClient(client *SocketClient) {
-	abnormalHeartbeat := false
-	heartbeat := time.NewTicker(InitializeTimeout)
-	defer heartbeat.Stop()
+	heartbeat := false
+	heartbeatTime := time.NewTicker(InitializeTimeout)
+	defer heartbeatTime.Stop()
 	for {
 		select {
 		case message, ok := <-client.Message:
@@ -100,7 +97,7 @@ func (s *Socket) WatchClient(client *SocketClient) {
 					if !s.Pool.Has(client.ID) {
 						client.Send <- &SocketMessage{SocketDispatch, "INITIAL_STATE", &s.state}
 						s.Pool.Set(client.ID, client)
-						heartbeat.Reset(HeartbeatTimeout)
+						heartbeatTime.Reset(HeartbeatTimeout)
 					} else {
 						s.Pool.Delete(client.ID)
 						client.Close(CloseAlreadyAuthenticated)
@@ -108,11 +105,9 @@ func (s *Socket) WatchClient(client *SocketClient) {
 					}
 				} else if message.OP == SocketHeartbeat {
 					if c, ok := s.Pool.Get(client.ID); ok && c != nil {
-						heartbeat.Reset(HeartbeatTimeout)
-						client.Send <- &SocketMessage{SocketHeartbeatACK, "", nil}
-						if abnormalHeartbeat {
-							abnormalHeartbeat = false // reset
-						}
+						client.Send <- &SocketMessage{OP: SocketHeartbeatACK}
+						heartbeatTime.Reset(HeartbeatTimeout)
+						heartbeat = false // reset
 					} else {
 						s.Pool.Delete(client.ID)
 						client.Close(CloseNotAuthenticated)
@@ -128,13 +123,12 @@ func (s *Socket) WatchClient(client *SocketClient) {
 				client.Close(1011) // Close: internal server error
 				return
 			}
-		case <-heartbeat.C:
+		case <-heartbeatTime.C:
 			if s.Pool.Has(client.ID) { // client already register...
-				if !abnormalHeartbeat {
-					// client does not send heartbeat
-					client.Send <- &SocketMessage{SocketHeartbeat, "", nil}
-					abnormalHeartbeat = true
-					heartbeat.Reset(HeartbeatWaitTimeout) // 5 sec more...
+				if !heartbeat {
+					client.Send <- &SocketMessage{OP: SocketHeartbeat}
+					heartbeat = true
+					heartbeatTime.Reset(HeartbeatTimeout) // wait 5 sec
 					continue
 				} else {
 					s.Pool.Delete(client.ID)
