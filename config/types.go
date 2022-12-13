@@ -8,10 +8,11 @@ type (
 	}
 
 	ServerConfig struct {
-		Host    string `toml:"host"`
-		Port    string `toml:"port"`
-		Token   string `toml:"token"`
-		Prefork bool   `toml:"prefork"`
+		Host     string `toml:"host"`
+		Port     string `toml:"port"`
+		Token    string `toml:"token"`
+		TimeZone string `toml:"timeZone"`
+		Prefork  bool   `toml:"prefork"`
 	}
 
 	SocketConfig struct {

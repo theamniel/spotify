@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -16,8 +17,19 @@ import (
 	"github.com/theamniel/spotify-server/spotify"
 )
 
+type newLogger struct{}
+
+var timeZone = "America/Caracas"
+
+func (l *newLogger) Write(p []byte) (n int, err error) {
+	loc, _ := time.LoadLocation(timeZone)
+
+	return fmt.Print("[" + time.Now().In(loc).Format("15:04:05") + "] " + string(p))
+}
+
 func init() {
-	log.SetFlags(log.Ltime)
+	log.SetFlags(0)
+	log.SetOutput(new(newLogger))
 }
 
 func main() {
@@ -25,6 +37,8 @@ func main() {
 	if err != nil {
 		log.Panic(err)
 	}
+
+	timeZone = cfg.Server.TimeZone
 
 	client := spotify.New(cfg.Spotify)
 
@@ -41,7 +55,7 @@ func main() {
 	/* --- MIDDLEWARES ---*/
 	app.Use(recover.New())
 	app.Use(logger.New(logger.Config{
-		TimeZone: "America/Caracas",
+		TimeZone: timeZone,
 	}))
 
 	/* --- ROUTES --- */
