@@ -23,10 +23,12 @@ func main() {
 		log.Panic(err)
 	}
 
-	if loc, locErr := time.LoadLocation(cfg.Server.TimeZone); locErr == nil {
-		log.SetFlags(0)
-		log.SetPrefix("[" + time.Now().In(loc).Format("15:04:05") + "] ")
+	loc, locErr := time.LoadLocation(cfg.Server.TimeZone)
+	if locErr != nil {
+		loc = time.Local
 	}
+	log.SetFlags(0)
+	log.SetPrefix("[" + time.Now().In(loc).Format("15:04:05") + "] ")
 
 	client := spotify.New(cfg.Spotify)
 
@@ -43,7 +45,7 @@ func main() {
 	/* --- MIDDLEWARES ---*/
 	app.Use(recover.New())
 	app.Use(logger.New(logger.Config{
-		TimeZone: cfg.Server.TimeZone,
+		TimeZone: loc.String(),
 	}))
 
 	/* --- ROUTES --- */
