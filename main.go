@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -16,14 +17,15 @@ import (
 	"github.com/theamniel/spotify-server/spotify"
 )
 
-func init() {
-	log.SetFlags(log.Ltime)
-}
-
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
 		log.Panic(err)
+	}
+
+	if loc, locErr := time.LoadLocation(cfg.Server.TimeZone); locErr == nil {
+		log.SetFlags(0)
+		log.SetPrefix("[" + time.Now().In(loc).Format("15:04:05") + "] ")
 	}
 
 	client := spotify.New(cfg.Spotify)
@@ -41,7 +43,7 @@ func main() {
 	/* --- MIDDLEWARES ---*/
 	app.Use(recover.New())
 	app.Use(logger.New(logger.Config{
-		TimeZone: "America/Caracas",
+		TimeZone: cfg.Server.TimeZone,
 	}))
 
 	/* --- ROUTES --- */
