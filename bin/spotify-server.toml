@@ -3,7 +3,7 @@ host = "localhost"
 port = "5050"
 token = "#{SPOTIFY_SERVER_TOKEN}"
 prefork = false
-timeZone = "America/Caracas"
+timeZone = "#{SPOTIFY_SERVER_TIMEZONE}"
 
 [socket]
 origins = ["*"]
