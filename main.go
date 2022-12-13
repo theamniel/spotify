@@ -23,9 +23,7 @@ func main() {
 		log.Panic(err)
 	}
 
-	timeZone := cfg.Server.TimeZone
-
-	if loc, locErr := time.LoadLocation(timeZone); locErr == nil {
+	if loc, locErr := time.LoadLocation(cfg.Server.TimeZone); locErr == nil {
 		log.SetFlags(0)
 		log.SetPrefix("[" + time.Now().In(loc).Format("15:04:05") + "] ")
 	}
@@ -45,7 +43,7 @@ func main() {
 	/* --- MIDDLEWARES ---*/
 	app.Use(recover.New())
 	app.Use(logger.New(logger.Config{
-		TimeZone: timeZone,
+		TimeZone: cfg.Server.TimeZone,
 	}))
 
 	/* --- ROUTES --- */
