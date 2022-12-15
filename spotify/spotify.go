@@ -20,7 +20,7 @@ const (
 )
 
 type SpotifyClient struct {
-	Socket *socket.Socket
+	Socket *socket.Socket[SocketData]
 
 	pollRate     time.Duration
 	refreshToken string

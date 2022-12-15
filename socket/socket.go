@@ -13,18 +13,18 @@ const (
 	InitializeTimeout    = 15 * time.Second
 )
 
-type Socket struct {
+type Socket[T any] struct {
 	Pool       *SocketPool
 	Broadcast  chan *SocketMessage
 	Register   chan *SocketClient
 	Unregister chan *SocketClient
 
 	mu    sync.RWMutex
-	state any
+	state *T
 }
 
-func New() *Socket {
-	return &Socket{
+func New[T any]() *Socket[T] {
+	return &Socket[T]{
 		Pool: &SocketPool{
 			clients: make(map[string]*SocketClient),
 		},
@@ -35,32 +35,32 @@ func New() *Socket {
 	}
 }
 
-func (s *Socket) Handle(conn *websocket.Conn) {
+func (s *Socket[V]) Handle(conn *websocket.Conn) {
 	client := NewClient(conn)
 	s.Register <- client
 	client.Run()
 	s.Unregister <- client
 }
 
-func (s *Socket) SetState(val any) {
+func (s *Socket[V]) SetState(val *V) {
 	s.mu.Lock()
 	s.state = val
 	s.mu.Unlock()
 }
 
-func (s *Socket) GetState() any {
+func (s *Socket[V]) GetState() *V {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.state
 }
 
-func (s *Socket) HasState() bool {
+func (s *Socket[V]) HasState() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.state != nil
 }
 
-func (s *Socket) Run() {
+func (s *Socket[V]) Run() {
 	for {
 		select {
 		case message := <-s.Broadcast:
@@ -85,7 +85,7 @@ func (s *Socket) Run() {
 	}
 }
 
-func (s *Socket) WatchClient(client *SocketClient) {
+func (s *Socket[V]) WatchClient(client *SocketClient) {
 	heartbeat := false
 	heartbeatTime := time.NewTicker(InitializeTimeout)
 	defer heartbeatTime.Stop()

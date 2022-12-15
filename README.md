@@ -11,7 +11,7 @@ You should send `Opcode 2: Initialize` immediately after receiving Opcode 1.
 ### List of Opcodes
 | Opcode | Name         | Description                                             | Client Send/Receive |
 | ------ | ------------ | ------------------------------------------------------- | ---------------- |
-| 0      | Dispatch     | Default Opcode when receiving core events.              | Receive only] |
+| 0      | Dispatch     | Default Opcode when receiving core events.              | Receive only |
 | 1      | Hello        | Sends this when clients initially connect               | Receive only |
 | 2      | Initialize   | This is what the client sends when receiving opcode `1` | Send only |
 | 3      | Heartbeat    | Clients should send Opcode 3                            | Send / Receive | 
