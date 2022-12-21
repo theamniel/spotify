@@ -30,7 +30,7 @@ type SpotifyClient struct {
 }
 
 func New(cfg *config.SpotifyConfig) *SpotifyClient {
-	return &SpotifyClient{
+	sp := &SpotifyClient{
 		clientID:     cfg.ClientID,
 		clientSecret: cfg.ClientSecret,
 		accessToken:  "",
@@ -38,6 +38,9 @@ func New(cfg *config.SpotifyConfig) *SpotifyClient {
 		pollRate:     1,
 		Socket:       nil,
 	}
+	go sp.UpdateAccessTokenAfter(55) // by default, access token expires in 1 hour.
+
+	return sp
 }
 
 func (c *SpotifyClient) GetAccessToken() (*Token, *SpotifyApiError) {
@@ -46,7 +49,8 @@ func (c *SpotifyClient) GetAccessToken() (*Token, *SpotifyApiError) {
 	f.Set("refresh_token", c.refreshToken)
 
 	req := fiber.Post(TOKEN_ENDPOINT).Form(f)
-	req.Set("Authorization", fmt.Sprintf("Basic %s", utils.EncodeToBase64(fmt.Sprintf("%s:%s", c.clientID, c.clientSecret))))
+	auth := utils.EncodeToBase64(fmt.Sprintf("%s:%s", c.clientID, c.clientSecret))
+	req.Set("Authorization", fmt.Sprintf("Basic %s", auth))
 
 	code, body, _ := req.Bytes()
 	if code >= 400 {
@@ -94,16 +98,24 @@ func (c *SpotifyClient) GetRecentlyPlayed() (*TracksPaged, *SpotifyApiError) {
 	return &payload, nil
 }
 
-func (c *SpotifyClient) UpdateAccessTokenAfter() {
+func (c *SpotifyClient) UpdateAccessTokenAfter(duration int) {
+	retry := 0
 	for {
 		if t, err := c.GetAccessToken(); err != nil {
-			break
+			if retry > 5 {
+				break
+			}
+			retry += 1
+			continue
 		} else {
 			if t.AccessToken != c.accessToken {
 				c.accessToken = t.AccessToken
 			}
+			if retry > 0 {
+				retry = 0
+			}
 		}
-		time.Sleep(55 * time.Minute) // by default, access token expires in 1 hour
+		time.Sleep(time.Duration(duration) * time.Minute) // by default, access token expires in 1 hour
 	}
 }
 
