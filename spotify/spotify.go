@@ -35,7 +35,7 @@ func New(cfg *config.SpotifyConfig) *SpotifyClient {
 		clientSecret: cfg.ClientSecret,
 		accessToken:  "",
 		refreshToken: cfg.RefreshToken,
-		pollRate:     1,
+		pollRate:     3,
 		Socket:       nil,
 	}
 	go sc.UpdateAccessTokenAfter(55) // by default, access token expires in 1 hour.
@@ -63,6 +63,23 @@ func (c *SpotifyClient) GetAccessToken() (*Token, *SpotifyApiError) {
 	}
 
 	c.accessToken = payload.AccessToken
+	return &payload, nil
+}
+
+func (c *SpotifyClient) GetPlayerState() (*PlayerState, *SpotifyApiError) {
+	req := fiber.Get(PLAYER_ENDPOINT)
+	req.Set("Authorization", fmt.Sprintf("Bearer %s", c.accessToken))
+
+	code, body, _ := req.Bytes()
+	if code >= 400 {
+		return nil, NewApiErrorFrom(body)
+	} else if code >= 204 {
+		return &PlayerState{IsPlaying: false}, nil
+	}
+	var payload PlayerState
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return nil, NewApiError(500, err.Error())
+	}
 	return &payload, nil
 }
 
@@ -120,7 +137,7 @@ func (c *SpotifyClient) UpdateAccessTokenAfter(duration int) {
 }
 
 func (c *SpotifyClient) GetSpotifyStatus() (*SocketData, *SpotifyApiError) {
-	now, err := c.GetNowPlaying()
+	now, err := c.GetPlayerState()
 	if err != nil {
 		return nil, err
 	}
