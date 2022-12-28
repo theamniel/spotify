@@ -30,7 +30,7 @@ type SpotifyClient struct {
 }
 
 func New(cfg *config.SpotifyConfig) *SpotifyClient {
-	sp := &SpotifyClient{
+	sc := &SpotifyClient{
 		clientID:     cfg.ClientID,
 		clientSecret: cfg.ClientSecret,
 		accessToken:  "",
@@ -38,9 +38,9 @@ func New(cfg *config.SpotifyConfig) *SpotifyClient {
 		pollRate:     1,
 		Socket:       nil,
 	}
-	go sp.UpdateAccessTokenAfter(55) // by default, access token expires in 1 hour.
+	go sc.UpdateAccessTokenAfter(55) // by default, access token expires in 1 hour.
 
-	return sp
+	return sc
 }
 
 func (c *SpotifyClient) GetAccessToken() (*Token, *SpotifyApiError) {

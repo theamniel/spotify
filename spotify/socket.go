@@ -11,10 +11,10 @@ import (
 
 func Socket(client *SpotifyClient, cfg *config.SocketConfig) fiber.Handler {
 	client.Socket = socket.New[SocketData]()
-	// star poll data
-	go client.poll()
-	// star socket "listeners"
+	// start socket "listeners"
 	go client.Socket.Run()
+	// start poll data
+	go client.poll()
 
 	return websocket.New(client.Socket.Handle, websocket.Config{
 		Origins:         cfg.Origins,
@@ -68,25 +68,14 @@ func (client *SpotifyClient) poll() {
 						}
 					}
 
-					// -------- PLAYING STATE CHANGE -------
+					// -------- TRACK STATE CHANGE -------
 					if spotifyStatus.IsPlaying != state.IsPlaying {
-						if !spotifyStatus.IsPlaying && len(spotifyStatus.PlayedAt) > 0 && spotifyStatus.PlayedAt != state.PlayedAt {
-							client.Socket.Broadcast <- &socket.SocketMessage{
-								socket.SocketDispatch,
-								"TRACK_STATE",
-								&socket.JSON{
-									"is_playing": spotifyStatus.IsPlaying,
-									"played_at":  spotifyStatus.PlayedAt,
-								},
-							}
-						} else {
-							client.Socket.Broadcast <- &socket.SocketMessage{
-								socket.SocketDispatch,
-								"TRACK_STATE",
-								&socket.JSON{
-									"is_playing": spotifyStatus.IsPlaying,
-								},
-							}
+						client.Socket.Broadcast <- &socket.SocketMessage{
+							socket.SocketDispatch,
+							"TRACK_STATE",
+							&socket.JSON{
+								"is_playing": spotifyStatus.IsPlaying,
+							},
 						}
 					}
 					client.Socket.SetState(spotifyStatus)
