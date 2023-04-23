@@ -25,9 +25,7 @@ type Socket[T any] struct {
 
 func New[T any]() *Socket[T] {
 	return &Socket[T]{
-		Pool: &SocketPool{
-			clients: make(map[string]*SocketClient),
-		},
+		Pool:       NewPool(),
 		Broadcast:  make(chan *SocketMessage),
 		Register:   make(chan *SocketClient),
 		Unregister: make(chan *SocketClient),
@@ -65,7 +63,7 @@ func (s *Socket[V]) Run() {
 		select {
 		case message := <-s.Broadcast:
 			for _, client := range s.Pool.GetAll() {
-				if client != nil {
+				if client != nil && client.IsAlive() {
 					client.Send <- message
 				}
 			}
