@@ -66,6 +66,15 @@ func (client *SpotifyClient) poll() {
 					}
 				}
 
+				// ----- TRACK PROGRESS -----
+				if spotifyStatus.ID == state.ID && spotifyStatus.IsPlaying {
+					client.Socket.Broadcast <- &socket.SocketMessage{
+						socket.SocketDispatch,
+						"TRACK_PROGRESS",
+						spotifyStatus.Timestamp.Progress,
+					}
+				}
+
 				// -------- TRACK STATE CHANGE -------
 				if spotifyStatus.IsPlaying != state.IsPlaying {
 					client.Socket.Broadcast <- &socket.SocketMessage{
