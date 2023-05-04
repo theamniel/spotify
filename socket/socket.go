@@ -33,32 +33,32 @@ func New[T any]() *Socket[T] {
 	}
 }
 
-func (s *Socket[V]) Handle(conn *websocket.Conn) {
+func (s *Socket[T]) Handle(conn *websocket.Conn) {
 	client := NewClient(conn)
 	s.Register <- client
 	client.Run()
 	s.Unregister <- client
 }
 
-func (s *Socket[V]) SetState(val *V) {
+func (s *Socket[T]) SetState(val *T) {
 	s.mu.Lock()
 	s.state = val
 	s.mu.Unlock()
 }
 
-func (s *Socket[V]) GetState() *V {
+func (s *Socket[T]) GetState() *T {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.state
 }
 
-func (s *Socket[V]) HasState() bool {
+func (s *Socket[T]) HasState() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.state != nil
 }
 
-func (s *Socket[V]) Run() {
+func (s *Socket[T]) Run() {
 	for {
 		select {
 		case message := <-s.Broadcast:
@@ -83,7 +83,7 @@ func (s *Socket[V]) Run() {
 	}
 }
 
-func (s *Socket[V]) WatchClient(client *SocketClient) {
+func (s *Socket[T]) WatchClient(client *SocketClient) {
 	heartbeat := false
 	heartbeatTime := time.NewTicker(InitializeTimeout)
 	defer heartbeatTime.Stop()

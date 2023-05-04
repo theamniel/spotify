@@ -31,7 +31,23 @@ Events are received on `Opcode 0: Event` - the event type will be part of the ro
   "op": 0,
   "t": "INITIAL_STATE",
   "d": {
-    // track object...
+    "id": "track id",
+    "title": "track title",
+    "url": "track url",
+    "is_playing": true,
+    "artist": {
+      "name": "artist name",
+      "url": "artist spotify url"
+    },
+    "album": {
+      "name": "album name",
+      "url": "album spotify url",
+      "art_url": "album art url"
+    },
+    "timestamp": { // maybe undefined
+      "progress": 123,
+      "duration": 224747
+    }
   }
 }
 ```
@@ -42,8 +58,17 @@ Events are received on `Opcode 0: Event` - the event type will be part of the ro
  "op": 2,
  "t": "TRACK_CHANGE",
  "d": {
-  // track object...
+  // same object of INITIAL_STATE
  } 
+}
+```
+
+#### `TRACK_PROGRESS`
+```json
+{
+  "op": 2,
+  "t": "TRACK_PROGRESS",
+  "d": 728 // now_playing -> progress_ms
 }
 ```
 
@@ -53,7 +78,7 @@ Events are received on `Opcode 0: Event` - the event type will be part of the ro
   "op": 2,
   "t": "TRACK_STATE",
   "d": {
-    // state object...
+    "is_playing": true // true/false
   }
 }
 ```

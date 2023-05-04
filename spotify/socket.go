@@ -87,7 +87,7 @@ func (client *SpotifyClient) poll() {
 				}
 				client.Socket.SetState(spotifyStatus)
 			}
-			time.Sleep(client.pollRate * time.Second)
 		}
+		time.Sleep(client.pollRate * time.Second)
 	}
 }

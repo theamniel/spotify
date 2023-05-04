@@ -8,6 +8,7 @@ logs
 **/*.exe
 **/*.ps*1
 **/*.json
+.scripts/
 
 # Editor directories and files
 .vscode/*
