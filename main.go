@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -54,21 +53,23 @@ func main() {
 		if err != nil {
 			return c.Status(500).JSON(err)
 		}
-		if strings.Contains(c.OriginalURL(), "?open") && payload.Item != nil {
+
+		if c.QueryBool("open") && payload.Item != nil {
 			return c.Redirect(payload.Item.ExternalUrls["spotify"], 308)
 		}
 		return c.Status(200).JSON(payload)
 	})
+
 	app.Get("/recently-played", func(c *fiber.Ctx) error {
 		payload, err := client.GetRecentlyPlayed()
 		if err != nil {
 			return c.Status(500).JSON(err)
 		}
 
-		if strings.Contains(c.OriginalURL(), "?open") {
+		if c.QueryBool("open") {
 			return c.Redirect(payload.Items[0].Track.ExternalUrls["spotify"], 308)
 		}
-		return c.Status(200).JSON(payload)
+		return c.Status(200).JSON(payload.Items[0])
 	})
 	app.Get("/socket", middlewares.WebsocketCheck(), spotify.Socket(client, cfg.Socket))
 	/* 404 */
