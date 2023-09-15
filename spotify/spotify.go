@@ -35,7 +35,7 @@ func New(cfg *config.SpotifyConfig) *SpotifyClient {
 		clientSecret: cfg.ClientSecret,
 		accessToken:  "",
 		refreshToken: cfg.RefreshToken,
-		pollRate:     5,
+		pollRate:     3,
 		Socket:       nil,
 	}
 	go sc.UpdateAccessTokenAfter(55) // by default, access token expires in 1 hour.

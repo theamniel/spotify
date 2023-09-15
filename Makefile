@@ -15,6 +15,13 @@ ifeq ($(OS), Windows_NT)
 	BINARY_OUTPUT := $(OUTPUT_FOLDER)\$(BINARY_NAME).exe
 endif
 
+.PHONY: setup ## Install all the build dependencies
+setup:
+	@echo Updating dependency tree...
+	go mod tidy 
+	go mod download
+	@echo Updated dependency tree successfully.
+
 .PHONY: default
 default: clean fmt build run
 
