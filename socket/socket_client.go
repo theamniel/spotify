@@ -60,9 +60,11 @@ func (socket *SocketClient) Close(code int) {
 
 func (socket *SocketClient) reader(ctx context.Context) {
 	defer close(socket.Message)
+	timer := time.NewTicker(10 * time.Millisecond)
+
 	for {
 		select {
-		case <-time.Tick(10 * time.Millisecond):
+		case <-timer.C:
 			if !socket.HasConn() {
 				return
 			}
@@ -98,6 +100,7 @@ func (socket *SocketClient) reader(ctx context.Context) {
 			}
 			socket.Message <- &event
 		case <-ctx.Done():
+			timer.Stop()
 			return
 		}
 	}
