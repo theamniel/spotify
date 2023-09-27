@@ -31,8 +31,8 @@ func (client *SpotifyClient) poll() {
 					client.onError()
 					continue
 				} else {
-					if client.pollRate > 3 {
-						client.pollRate = 3
+					if client.pollRate > 5 {
+						client.pollRate = 5
 					}
 					client.Socket.SetState(spotifyStatus)
 				}
@@ -42,8 +42,8 @@ func (client *SpotifyClient) poll() {
 					client.onError()
 					continue
 				} else {
-					if spotifyStatus.IsPlaying && client.pollRate > 3 {
-						client.pollRate = 3
+					if spotifyStatus.IsPlaying && client.pollRate > 5 {
+						client.pollRate = 5
 					}
 					state := client.Socket.GetState()
 
