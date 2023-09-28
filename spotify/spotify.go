@@ -1,15 +1,15 @@
 package spotify
 
 import (
-	"encoding/json"
-	"fmt"
+	"context"
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/theamniel/spotify-server/config"
 	"github.com/theamniel/spotify-server/socket"
-	"github.com/theamniel/spotify-server/utils"
+	sp "github.com/zmb3/spotify/v2"
+	spauth "github.com/zmb3/spotify/v2/auth"
+	"golang.org/x/oauth2"
 )
 
 const (
@@ -21,6 +21,7 @@ const (
 
 type SpotifyClient struct {
 	Socket *socket.Socket[SocketData]
+	Client *sp.Client
 
 	pollRate     time.Duration
 	refreshToken string
@@ -30,119 +31,42 @@ type SpotifyClient struct {
 }
 
 func New(cfg *config.SpotifyConfig) *SpotifyClient {
-	sc := &SpotifyClient{
+	cauth := spauth.New(spauth.WithClientID(cfg.ClientID), spauth.WithClientSecret(cfg.ClientSecret))
+	token, err := cauth.RefreshToken(context.Background(), &oauth2.Token{RefreshToken: cfg.RefreshToken})
+	if err != nil {
+		panic(err)
+	}
+
+	return &SpotifyClient{
 		clientID:     cfg.ClientID,
 		clientSecret: cfg.ClientSecret,
-		accessToken:  "",
-		refreshToken: cfg.RefreshToken,
+		accessToken:  token.AccessToken,
+		refreshToken: token.RefreshToken,
+		Client:       sp.New(cauth.Client(context.Background(), token), sp.WithRetry(true)),
 		pollRate:     5,
 		Socket:       nil,
 	}
-	go sc.UpdateAccessTokenAfter(55) // by default, access token expires in 1 hour.
-
-	return sc
 }
 
-func (c *SpotifyClient) GetAccessToken() (*Token, *SpotifyApiError) {
-	f := fiber.AcquireArgs()
-	f.Set("grant_type", "refresh_token")
-	f.Set("refresh_token", c.refreshToken)
-
-	req := fiber.Post(TOKEN_ENDPOINT).Form(f)
-	auth := utils.EncodeToBase64(fmt.Sprintf("%s:%s", c.clientID, c.clientSecret))
-	req.Set("Authorization", fmt.Sprintf("Basic %s", auth))
-
-	code, body, _ := req.Bytes()
-	if code >= 400 {
-		return nil, NewApiErrorFrom(body)
-	}
-
-	var payload Token
-	if err := json.Unmarshal(body, &payload); err != nil {
-		return nil, NewApiError(500, err.Error())
-	}
-
-	c.accessToken = payload.AccessToken
-	return &payload, nil
+func (c *SpotifyClient) GetPlayerState() (*PlayerState, error) {
+	return c.Client.PlayerState(context.Background())
 }
 
-func (c *SpotifyClient) GetPlayerState() (*PlayerState, *SpotifyApiError) {
-	req := fiber.Get(PLAYER_ENDPOINT)
-	req.Set("Authorization", fmt.Sprintf("Bearer %s", c.accessToken))
-
-	code, body, _ := req.Bytes()
-	if code >= 400 {
-		return nil, NewApiErrorFrom(body)
-	} else if code >= 204 {
-		return &PlayerState{IsPlaying: false}, nil
-	}
-	var payload PlayerState
-	if err := json.Unmarshal(body, &payload); err != nil {
-		return nil, NewApiError(500, err.Error())
-	}
-	return &payload, nil
+func (c *SpotifyClient) GetNowPlaying() (*CurrentlyPlaying, error) {
+	return c.Client.PlayerCurrentlyPlaying(context.Background())
 }
 
-func (c *SpotifyClient) GetNowPlaying() (*PlayerState, *SpotifyApiError) {
-	req := fiber.Get(NOW_PLAYING_ENDPOINT)
-	req.Set("Authorization", fmt.Sprintf("Bearer %s", c.accessToken))
-
-	code, body, _ := req.Bytes()
-	if code >= 400 {
-		return nil, NewApiErrorFrom(body)
-	} else if code >= 204 {
-		return &PlayerState{IsPlaying: false}, nil
-	}
-	var payload PlayerState
-	if err := json.Unmarshal(body, &payload); err != nil {
-		return nil, NewApiError(500, err.Error())
-	}
-	return &payload, nil
+func (c *SpotifyClient) GetRecentlyPlayed() ([]RecentlyPlayedItem, error) {
+	return c.Client.PlayerRecentlyPlayed(context.Background())
 }
 
-func (c *SpotifyClient) GetRecentlyPlayed() (*TracksPaged, *SpotifyApiError) {
-	req := fiber.Get(RECENTLY_PLAYED_ENDPOINT + "?limit=1")
-	req.Set("Authorization", fmt.Sprintf("Bearer %s", c.accessToken))
-
-	code, body, _ := req.Bytes()
-	if code >= 400 {
-		return nil, NewApiErrorFrom(body)
-	}
-	var payload TracksPaged
-	if err := json.Unmarshal(body, &payload); err != nil {
-		return nil, NewApiError(500, err.Error())
-	}
-	return &payload, nil
-}
-
-func (c *SpotifyClient) UpdateAccessTokenAfter(duration int) {
-	retry := 0
-	for {
-		if t, err := c.GetAccessToken(); err != nil {
-			if retry > 5 {
-				break
-			}
-			retry += 1
-			continue
-		} else {
-			if t.AccessToken != c.accessToken {
-				c.accessToken = t.AccessToken
-			}
-			if retry > 0 {
-				retry = 0
-			}
-		}
-		time.Sleep(time.Duration(duration) * time.Minute) // by default, access token expires in 1 hour
-	}
-}
-
-func (c *SpotifyClient) GetSpotifyStatus() (*SocketData, *SpotifyApiError) {
+func (c *SpotifyClient) GetSpotifyStatus() (*SocketData, error) {
 	now, err := c.GetPlayerState()
 	if err != nil {
 		return nil, err
 	}
 
-	if now.Item != nil {
+	if now != nil && now.Playing {
 		var artsName []string
 		for _, val := range now.Item.Artists {
 			artsName = append(artsName, val.Name)
@@ -150,19 +74,19 @@ func (c *SpotifyClient) GetSpotifyStatus() (*SocketData, *SpotifyApiError) {
 		return &SocketData{
 			ID:        now.Item.ID,
 			Title:     now.Item.Name,
-			URL:       now.Item.ExternalUrls["spotify"],
-			IsPlaying: now.IsPlaying,
+			URL:       now.Item.ExternalURLs["spotify"],
+			IsPlaying: now.Playing,
 			Timestamp: &SocketDataTimestamp{
-				Progress: now.ProgressMs,
-				Duration: now.Item.DurationMs,
+				Progress: now.Progress,
+				Duration: now.Item.Duration,
 			},
 			Artist: &SocketDataArtist{
 				Name: strings.Join(artsName, "; "),
-				URL:  now.Item.Artists[0].ExternalUrls["spotify"],
+				URL:  now.Item.Artists[0].ExternalURLs["spotify"],
 			},
 			Album: &SocketDataAlbum{
 				Name:   now.Item.Album.Name,
-				URL:    now.Item.Album.ExternalUrls["spotify"],
+				URL:    now.Item.Album.ExternalURLs["spotify"],
 				ArtURL: now.Item.Album.Images[0].URL,
 			},
 		}, nil
@@ -172,7 +96,7 @@ func (c *SpotifyClient) GetSpotifyStatus() (*SocketData, *SpotifyApiError) {
 	if err != nil {
 		return nil, err
 	}
-	track := last.Items[0].Track
+	track := last[0].Track
 	var artsName []string
 	for _, val := range track.Artists {
 		artsName = append(artsName, val.Name)
@@ -180,16 +104,16 @@ func (c *SpotifyClient) GetSpotifyStatus() (*SocketData, *SpotifyApiError) {
 	return &SocketData{
 		ID:        track.ID,
 		Title:     track.Name,
-		URL:       track.ExternalUrls["spotify"],
+		URL:       track.ExternalURLs["spotify"],
 		IsPlaying: false,
-		PlayedAt:  last.Items[0].PlayedAt,
+		PlayedAt:  &last[0].PlayedAt,
 		Artist: &SocketDataArtist{
 			Name: strings.Join(artsName, "; "),
-			URL:  track.Artists[0].ExternalUrls["spotify"],
+			URL:  track.Artists[0].ExternalURLs["spotify"],
 		},
 		Album: &SocketDataAlbum{
 			Name:   track.Album.Name,
-			URL:    track.Album.ExternalUrls["spotify"],
+			URL:    track.Album.ExternalURLs["spotify"],
 			ArtURL: track.Album.Images[0].URL,
 		},
 	}, nil

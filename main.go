@@ -55,7 +55,7 @@ func main() {
 		}
 
 		if c.QueryBool("open") && payload.Item != nil {
-			return c.Redirect(payload.Item.ExternalUrls["spotify"], 308)
+			return c.Redirect(payload.Item.ExternalURLs["spotify"], 308)
 		}
 		return c.Status(200).JSON(payload)
 	})
@@ -67,10 +67,12 @@ func main() {
 		}
 
 		if c.QueryBool("open") {
-			return c.Redirect(payload.Items[0].Track.ExternalUrls["spotify"], 308)
+			return c.Redirect(payload[0].Track.ExternalURLs["spotify"], 308)
 		}
-		return c.Status(200).JSON(payload.Items[0])
+		return c.Status(200).JSON(payload[0])
 	})
+
+	/* Websocket service */
 	app.Get("/socket", middlewares.WebsocketCheck(), spotify.Socket(client, cfg.Socket))
 	/* 404 */
 	app.Use(func(c *fiber.Ctx) error {
@@ -89,8 +91,9 @@ func main() {
 		log.Println("Press CTRL-C to stop the application")
 	}
 	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
+	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
+
 	if !fiber.IsChild() {
 		log.Println("Shutting down Socket server...")
 	}
