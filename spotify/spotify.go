@@ -12,13 +12,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const (
-	TOKEN_ENDPOINT           = "https://accounts.spotify.com/api/token"
-	NOW_PLAYING_ENDPOINT     = "https://api.spotify.com/v1/me/player/currently-playing"
-	RECENTLY_PLAYED_ENDPOINT = "https://api.spotify.com/v1/me/player/recently-played"
-	PLAYER_ENDPOINT          = "https://api.spotify.com/v1/me/player"
-)
-
 type SpotifyClient struct {
 	Socket *socket.Socket[SocketData]
 	Client *sp.Client
