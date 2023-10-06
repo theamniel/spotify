@@ -1,8 +1,8 @@
 package middlewares
 
 import (
+	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/websocket/v2"
 )
 
 func WebsocketCheck() fiber.Handler {

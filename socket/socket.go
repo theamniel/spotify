@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gofiber/websocket/v2"
+	"github.com/gofiber/contrib/websocket"
 )
 
 const (
