@@ -18,7 +18,7 @@ type SocketClient struct {
 	Send              chan *SocketMessage
 	Message           chan *SocketMessage
 	Done              chan struct{}
-	IsConnectionAlive bool
+	isConnectionAlive bool
 }
 
 func NewClient(conn *websocket.Conn) *SocketClient {
@@ -28,26 +28,20 @@ func NewClient(conn *websocket.Conn) *SocketClient {
 		Send:              make(chan *SocketMessage),
 		Message:           make(chan *SocketMessage),
 		Done:              make(chan struct{}),
-		IsConnectionAlive: conn != nil,
+		isConnectionAlive: conn != nil,
 	}
-}
-
-func (socket *SocketClient) HasConn() bool {
-	socket.RLock()
-	defer socket.RUnlock()
-	return socket.Conn != nil
 }
 
 func (socket *SocketClient) IsAlive() bool {
 	socket.RLock()
 	defer socket.RUnlock()
-	return socket.IsConnectionAlive
+	return socket.isConnectionAlive
 }
 
 func (socket *SocketClient) SetAlive(alive bool) {
 	socket.Lock()
 	defer socket.Unlock()
-	socket.IsConnectionAlive = alive
+	socket.isConnectionAlive = alive
 }
 
 func (socket *SocketClient) Close(code int) {
@@ -61,11 +55,11 @@ func (socket *SocketClient) Close(code int) {
 func (socket *SocketClient) reader(ctx context.Context) {
 	defer close(socket.Message)
 	timer := time.NewTicker(10 * time.Millisecond)
-
+	defer timer.Stop()
 	for {
 		select {
 		case <-timer.C:
-			if !socket.HasConn() {
+			if !socket.IsAlive() {
 				return
 			}
 
@@ -73,34 +67,26 @@ func (socket *SocketClient) reader(ctx context.Context) {
 			mt, message, err := socket.Conn.ReadMessage()
 			socket.RUnlock()
 
-			if mt == websocket.PingMessage || mt == websocket.PongMessage {
-				if err != nil {
-					return
-				}
-				continue
-			}
-
-			if mt == websocket.CloseMessage {
-				socket.Close(1000)
-				return
-			}
-
-			if err != nil { // TODO handle error
+			if err != nil {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 					fmt.Printf("UnexpectedError: %v\n", err)
 				}
 				return
 			}
 
-			// We have a message and we fire the message event
-			var event SocketMessage
-			if err := json.Unmarshal(message, &event); err != nil {
-				socket.Close(CloseInvalidMessage)
+			if mt == websocket.TextMessage { // We have a message and we fire the message event
+				var event SocketMessage
+				if err := json.Unmarshal(message, &event); err != nil {
+					socket.Close(CloseInvalidMessage)
+					return
+				}
+				socket.Message <- &event
+
+			} else if mt == websocket.CloseMessage {
+				socket.Close(websocket.CloseNormalClosure)
 				return
 			}
-			socket.Message <- &event
 		case <-ctx.Done():
-			timer.Stop()
 			return
 		}
 	}
@@ -115,15 +101,12 @@ func (socket *SocketClient) writer(ctx context.Context) {
 				socket.RLock()
 				err := socket.Conn.WriteJSON(event)
 				socket.RUnlock()
-
-				if err != nil {
-					socket.Close(1011)
-					return
+				if err == nil {
+					continue
 				}
-			} else {
-				socket.Close(1011)
-				return
 			}
+			socket.Close(1011)
+			return
 		case <-ctx.Done():
 			return
 		}

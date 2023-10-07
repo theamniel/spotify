@@ -63,9 +63,11 @@ func (s *Socket[T]) Run() {
 		select {
 		case message := <-s.Broadcast:
 			for _, client := range s.Pool.GetAll() {
-				if client != nil && client.IsAlive() {
-					client.Send <- message
-				}
+				go func(client *SocketClient) { // send to each client in parallel
+					if client != nil && client.IsAlive() {
+						client.Send <- message
+					}
+				}(client)
 			}
 		case client := <-s.Register:
 			if s.Pool.Has(client.ID) {
@@ -128,10 +130,6 @@ func (s *Socket[T]) WatchClient(client *SocketClient) {
 					heartbeat = true
 					heartbeatTime.Reset(HeartbeatTimeout) // wait 5 sec
 					continue
-				} else {
-					s.Pool.Delete(client.ID)
-					client.Close(CloseByServerRequest)
-					return
 				}
 			}
 			s.Unregister <- client
