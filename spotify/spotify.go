@@ -7,38 +7,36 @@ import (
 
 	"github.com/theamniel/spotify-server/config"
 	"github.com/theamniel/spotify-server/socket"
-	sp "github.com/zmb3/spotify/v2"
-	spauth "github.com/zmb3/spotify/v2/auth"
+	"github.com/zmb3/spotify/v2"
+	"github.com/zmb3/spotify/v2/auth"
 	"golang.org/x/oauth2"
 )
 
 type SpotifyClient struct {
 	Socket *socket.Socket[SocketData]
-	Client *sp.Client
+	Client *spotify.Client
 
-	pollRate     time.Duration
-	refreshToken string
-	accessToken  string
-	clientID     string
-	clientSecret string
+	pollRate    time.Duration
+	isConnected bool
 }
 
 func New(cfg *config.SpotifyConfig) *SpotifyClient {
-	cauth := spauth.New(spauth.WithClientID(cfg.ClientID), spauth.WithClientSecret(cfg.ClientSecret))
-	token, err := cauth.RefreshToken(context.Background(), &oauth2.Token{RefreshToken: cfg.RefreshToken})
+	auth := spotifyauth.New(spotifyauth.WithClientID(cfg.ClientID), spotifyauth.WithClientSecret(cfg.ClientSecret))
+	token, err := auth.RefreshToken(context.Background(), &oauth2.Token{RefreshToken: cfg.RefreshToken})
 	if err != nil {
 		panic(err)
 	}
 
 	return &SpotifyClient{
-		clientID:     cfg.ClientID,
-		clientSecret: cfg.ClientSecret,
-		accessToken:  token.AccessToken,
-		refreshToken: token.RefreshToken,
-		Client:       sp.New(cauth.Client(context.Background(), token), sp.WithRetry(true)),
-		pollRate:     5,
-		Socket:       nil,
+		Client:      spotify.New(auth.Client(context.Background(), token), spotify.WithRetry(true)),
+		isConnected: len(token.AccessToken) > 0,
+		pollRate:    5,
+		Socket:      nil,
 	}
+}
+
+func (sc *SpotifyClient) IsConnected() bool {
+	return sc.isConnected
 }
 
 func (c *SpotifyClient) GetPlayerState() (*PlayerState, error) {

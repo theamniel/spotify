@@ -89,40 +89,45 @@ func (s *Socket[T]) WatchClient(client *SocketClient) {
 	heartbeat := false
 	heartbeatTime := time.NewTicker(InitializeTimeout)
 	defer heartbeatTime.Stop()
+
 	for {
 		select {
 		case message, ok := <-client.Message:
-			if ok {
-				if message.OP == SocketInitialize {
-					if !s.Pool.Has(client.ID) {
-						client.Send <- &SocketMessage{SocketDispatch, "INITIAL_STATE", &s.state}
-						s.Pool.Set(client.ID, client)
-						heartbeatTime.Reset(HeartbeatTimeout)
-					} else {
-						s.Pool.Delete(client.ID)
-						client.Close(CloseAlreadyAuthenticated)
-						return
-					}
-				} else if message.OP == SocketHeartbeat {
-					if c, ok := s.Pool.Get(client.ID); ok && c != nil {
-						client.Send <- &SocketMessage{OP: SocketHeartbeatACK}
-						heartbeatTime.Reset(HeartbeatTimeout)
-						heartbeat = false // reset
-					} else {
-						s.Pool.Delete(client.ID)
-						client.Close(CloseNotAuthenticated)
-						return
-					}
-				} else {
-					s.Unregister <- client
-					client.Close(CloseInvalidOpcode)
-					return
-				}
-			} else {
+			if !ok {
 				s.Unregister <- client
-				client.Close(1011) // Close: internal server error
+				client.Close(websocket.CloseInternalServerErr)
 				return
 			}
+
+			// OPCODE: Initialize (2)
+			if message.OP == SocketInitialize {
+				if !s.Pool.Has(client.ID) {
+					client.Send <- &SocketMessage{SocketDispatch, "INITIAL_STATE", &s.state}
+					s.Pool.Set(client.ID, client)
+					heartbeatTime.Reset(HeartbeatTimeout)
+				} else {
+					s.Pool.Delete(client.ID)
+					client.Close(CloseAlreadyAuthenticated)
+					return
+				}
+				// OPCODE: Heartbeat (3)
+			} else if message.OP == SocketHeartbeat {
+				if s.Pool.Has(client.ID) {
+					client.Send <- &SocketMessage{OP: SocketHeartbeatACK}
+					heartbeatTime.Reset(HeartbeatTimeout)
+					heartbeat = false // reset
+				} else {
+					s.Pool.Delete(client.ID)
+					client.Close(CloseNotAuthenticated)
+					return
+				}
+
+			} else {
+				s.Unregister <- client
+				client.Close(CloseInvalidOpcode)
+				return
+			}
+
 		case <-heartbeatTime.C:
 			if s.Pool.Has(client.ID) { // client already register...
 				if !heartbeat {

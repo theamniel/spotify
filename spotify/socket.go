@@ -25,7 +25,7 @@ func Socket(client *SpotifyClient, cfg *config.SocketConfig) fiber.Handler {
 
 func (client *SpotifyClient) poll() {
 	for {
-		if client.accessToken != "" {
+		if client.IsConnected() {
 			if !client.Socket.HasState() {
 				if spotifyStatus, err := client.GetSpotifyStatus(); err != nil {
 					client.onError()

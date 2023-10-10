@@ -56,6 +56,7 @@ func (socket *SocketClient) reader(ctx context.Context) {
 	defer close(socket.Message)
 	timer := time.NewTicker(10 * time.Millisecond)
 	defer timer.Stop()
+
 	for {
 		select {
 		case <-timer.C:
@@ -94,18 +95,19 @@ func (socket *SocketClient) reader(ctx context.Context) {
 
 func (socket *SocketClient) writer(ctx context.Context) {
 	defer close(socket.Send)
+
 	for {
 		select {
 		case event, ok := <-socket.Send:
 			if ok {
 				socket.RLock()
-				err := socket.Conn.WriteJSON(event)
+				err := socket.Conn.WriteMessage(websocket.TextMessage, event.ToBytes())
 				socket.RUnlock()
 				if err == nil {
 					continue
 				}
 			}
-			socket.Close(1011)
+			socket.Close(websocket.CloseInternalServerErr)
 			return
 		case <-ctx.Done():
 			return
