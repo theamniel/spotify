@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/BurntSushi/toml v1.3.2
+	github.com/goccy/go-json v0.10.2
 	github.com/gofiber/contrib/websocket v1.2.2
 	github.com/gofiber/fiber/v2 v2.49.2
 	github.com/zmb3/spotify/v2 v2.4.1-0.20230911150751-7154272fecfe

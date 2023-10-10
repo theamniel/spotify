@@ -1,6 +1,6 @@
 package socket
 
-import "encoding/json"
+import "github.com/goccy/go-json"
 
 const (
 	// Default Opcode when receiving core events [RECEIVE ONLY]
