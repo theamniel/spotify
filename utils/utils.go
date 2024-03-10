@@ -10,6 +10,7 @@ import (
 
 var values = regexp.MustCompile(`[#]\{([\w\.]+)\}`)
 
+// Replace values from string in os environement (source)
 func ReplaceValues(bsrc []byte) []byte {
 	for _, items := range values.FindAllSubmatch(bsrc, -1) {
 		env := os.Getenv(string(items[1]))
@@ -20,10 +21,12 @@ func ReplaceValues(bsrc []byte) []byte {
 	return bsrc
 }
 
+// Encode string to base64 (base64)
 func EncodeToBase64(str string) string {
 	return base64.StdEncoding.EncodeToString([]byte(str))
 }
 
+// Get Executable file and dir (dir, file, error)
 func Executable() (string, string, error) {
 	executable, err := os.Executable()
 	if err != nil {

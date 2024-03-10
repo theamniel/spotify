@@ -17,13 +17,6 @@ const (
 
 	// Sends this when clients sends heartbeat [RECEIVE ONLY]
 	SocketHeartbeatACK
-
-	// TODO: implement
-	// Sends this when server request reconnect [RECEIVE ONLY]
-	SocketReconnect
-
-	// This is what the client sends with session_id when receiving opcode 5  [SEND ONLY]
-	SocketResume
 )
 
 const (
@@ -45,22 +38,24 @@ const (
 
 type JSON map[string]any
 
-type SocketMessage struct {
+type Message struct {
 	// Operation code
 	OP int `json:"op"`
 
 	// Event payload
 	T string `json:"t,omitempty"`
 
-	// Data
+	// Data payload
 	D any `json:"d,omitempty"`
 }
 
-func Message(op int, t string, d any) *SocketMessage {
-	return &SocketMessage{op, t, d}
+// Format Message to struct
+func FormatMessage(op int, t string, d any) *Message {
+	return &Message{op, t, d}
 }
 
-func (sm *SocketMessage) ToBytes() []byte {
+// Convert struct to []bytes
+func (sm *Message) ToBytes() []byte {
 	if bytes, err := json.Marshal(sm); err != nil {
 		return nil
 	} else {
