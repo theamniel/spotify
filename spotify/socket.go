@@ -14,7 +14,7 @@ func Socket(client *SpotifyClient, cfg *config.SocketConfig) fiber.Handler {
 	// start socket "listeners"
 	go client.Socket.Run()
 	// start poll data
-	go client.poll()
+	go poll(client)
 
 	return websocket.New(client.Socket.Handle, websocket.Config{
 		Origins:         cfg.Origins,
@@ -23,7 +23,7 @@ func Socket(client *SpotifyClient, cfg *config.SocketConfig) fiber.Handler {
 	})
 }
 
-func (client *SpotifyClient) poll() {
+func poll(client *SpotifyClient) {
 	for {
 		if client.IsConnected() {
 			if !client.Socket.HasState() {
