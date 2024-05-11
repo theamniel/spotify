@@ -15,7 +15,7 @@ type (
 /*-------------- SOCKET API ------------*/
 type SocketData struct {
 	Album     *SocketDataAlbum     `json:"album"`
-	Artist    *SocketDataArtist    `json:"artist"`
+	Artists   []SocketDataArtist   `json:"artists"`
 	ID        sm.ID                `json:"id"`
 	IsPlaying bool                 `json:"is_playing"`
 	PlayedAt  *time.Time           `json:"played_at,omitempty"`

@@ -51,27 +51,43 @@ func main() {
 
 	/* --- ROUTES --- */
 	app.Get("/now-playing", func(c *fiber.Ctx) error {
-		payload, err := client.GetNowPlaying()
+		raw, open, url := c.QueryBool("raw"), c.QueryBool("open"), ""
+		payload, err := client.GetNowPlaying(raw)
 		if err != nil {
 			return c.Status(500).JSON(err)
 		}
 
-		if c.QueryBool("open") && payload.Item != nil {
-			return c.Redirect(payload.Item.ExternalURLs["spotify"], 308)
+		if open {
+			if raw {
+				url = payload.(*spotify.CurrentlyPlaying).Item.ExternalURLs["spotify"]
+			} else {
+				url = payload.(*spotify.SocketData).URL
+			}
+			return c.Redirect(url, 308)
 		}
 		return c.Status(200).JSON(payload)
 	})
 
 	app.Get("/recently-played", func(c *fiber.Ctx) error {
-		payload, err := client.GetRecentlyPlayed()
+		raw, open, url := c.QueryBool("raw"), c.QueryBool("open"), ""
+		payload, err := client.GetLastPlayed(raw)
 		if err != nil {
 			return c.Status(500).JSON(err)
 		}
 
-		if c.QueryBool("open") {
-			return c.Redirect(payload[0].Track.ExternalURLs["spotify"], 308)
+		if raw {
+			payload = payload.([]spotify.RecentlyPlayedItem)[0]
+			if open {
+				url = payload.(spotify.RecentlyPlayedItem).Track.ExternalURLs["spotify"]
+			}
+		} else if open {
+			url = payload.(*spotify.SocketData).URL
 		}
-		return c.Status(200).JSON(payload[0])
+
+		if open {
+			return c.Redirect(url, 308)
+		}
+		return c.Status(200).JSON(payload)
 	})
 
 	/* Websocket service */
