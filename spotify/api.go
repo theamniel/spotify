@@ -25,8 +25,8 @@ type SocketData struct {
 }
 
 type SocketDataTimestamp struct {
-	Progress int `json:"progress"`
-	Duration int `json:"duration"`
+	Progress sm.Numeric `json:"progress"`
+	Duration sm.Numeric `json:"duration"`
 }
 
 type SocketDataArtist struct {

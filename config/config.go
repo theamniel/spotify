@@ -4,8 +4,15 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
+	"github.com/joho/godotenv"
 	"github.com/theamniel/spotify-server/utils"
 )
+
+func init() {
+	if err := godotenv.Load(); err != nil {
+		panic(err)
+	}
+}
 
 func Load() (*Config, error) {
 	dir, file, err := utils.Executable()
