@@ -10,7 +10,7 @@ import (
 )
 
 func Socket(client *SpotifyClient, cfg *config.SocketConfig) fiber.Handler {
-	client.Socket = socket.New[SocketData]()
+	client.Socket = socket.New[Track]()
 	// start socket "listeners"
 	go client.Socket.Run()
 	// start poll data

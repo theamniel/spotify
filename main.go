@@ -61,7 +61,7 @@ func main() {
 			if raw {
 				url = payload.(*spotify.CurrentlyPlaying).Item.ExternalURLs["spotify"]
 			} else {
-				url = payload.(*spotify.SocketData).URL
+				url = payload.(*spotify.Track).URL
 			}
 			return c.Redirect(url, 308)
 		}
@@ -81,7 +81,7 @@ func main() {
 				url = payload.(spotify.RecentlyPlayedItem).Track.ExternalURLs["spotify"]
 			}
 		} else if open {
-			url = payload.(*spotify.SocketData).URL
+			url = payload.(*spotify.Track).URL
 		}
 
 		if open {

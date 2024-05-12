@@ -12,7 +12,7 @@ import (
 )
 
 type SpotifyClient struct {
-	Socket *socket.Socket[SocketData]
+	Socket *socket.Socket[Track]
 	Client *spotify.Client
 
 	pollRate    time.Duration
@@ -41,12 +41,12 @@ func (sc *SpotifyClient) IsConnected() bool {
 	return sc.isConnected
 }
 
-func (c *SpotifyClient) GetSpotifyStatus() (*SocketData, error) {
+func (c *SpotifyClient) GetSpotifyStatus() (*Track, error) {
 	if now, err := c.GetNowPlaying(false); err != nil {
 		return nil, err
 	} else {
 		if now != nil {
-			return now.(*SocketData), nil
+			return now.(*Track), nil
 		}
 	}
 
@@ -54,7 +54,7 @@ func (c *SpotifyClient) GetSpotifyStatus() (*SocketData, error) {
 	if err != nil {
 		return nil, err
 	}
-	return last.(*SocketData), nil
+	return last.(*Track), nil
 }
 
 func (c *SpotifyClient) GetNowPlaying(raw bool) (any, error) {
@@ -63,21 +63,21 @@ func (c *SpotifyClient) GetNowPlaying(raw bool) (any, error) {
 	} else {
 		if !raw {
 			if now != nil && now.Playing {
-				var artists []SocketDataArtist
+				var artists []TrackArtist
 				for _, artist := range now.Item.Artists {
-					artists = append(artists, SocketDataArtist{Name: artist.Name, URL: artist.ExternalURLs["spotify"]})
+					artists = append(artists, TrackArtist{Name: artist.Name, URL: artist.ExternalURLs["spotify"]})
 				}
-				return &SocketData{
+				return &Track{
 					ID:        now.Item.ID,
 					Title:     now.Item.Name,
 					URL:       now.Item.ExternalURLs["spotify"],
 					IsPlaying: now.Playing,
-					Timestamp: &SocketDataTimestamp{
+					Timestamp: &TrackTimestamp{
 						Progress: now.Progress,
 						Duration: now.Item.Duration,
 					},
 					Artists: artists,
-					Album: &SocketDataAlbum{
+					Album: &TrackAlbum{
 						Name:   now.Item.Album.Name,
 						URL:    now.Item.Album.ExternalURLs["spotify"],
 						ArtURL: now.Item.Album.Images[0].URL,
@@ -98,18 +98,18 @@ func (c *SpotifyClient) GetLastPlayed(raw bool) (any, error) {
 	} else {
 		if !raw {
 			track := last[0].Track
-			var artists []SocketDataArtist
+			var artists []TrackArtist
 			for _, artist := range track.Artists {
-				artists = append(artists, SocketDataArtist{Name: artist.Name, URL: artist.ExternalURLs["spotify"]})
+				artists = append(artists, TrackArtist{Name: artist.Name, URL: artist.ExternalURLs["spotify"]})
 			}
-			return &SocketData{
+			return &Track{
 				ID:        track.ID,
 				Title:     track.Name,
 				URL:       track.ExternalURLs["spotify"],
 				IsPlaying: false,
 				PlayedAt:  &last[0].PlayedAt,
 				Artists:   artists,
-				Album: &SocketDataAlbum{
+				Album: &TrackAlbum{
 					Name:   track.Album.Name,
 					URL:    track.Album.ExternalURLs["spotify"],
 					ArtURL: track.Album.Images[0].URL,
