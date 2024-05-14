@@ -12,9 +12,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/theamniel/spotify-server/config"
-	"github.com/theamniel/spotify-server/middlewares"
-	"github.com/theamniel/spotify-server/spotify"
+	"spotify.amniel/config"
+	"spotify.amniel/middlewares"
+	"spotify.amniel/spotify"
 )
 
 func main() {
