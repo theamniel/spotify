@@ -19,12 +19,12 @@ type SpotifyClient struct {
 	isConnected bool
 }
 
-func New(cfg *config.SpotifyConfig) *SpotifyClient {
+func New(cfg *config.Config) *SpotifyClient {
 	auth := spotifyauth.New(
-		spotifyauth.WithClientID(cfg.ClientID),
-		spotifyauth.WithClientSecret(cfg.ClientSecret),
+		spotifyauth.WithClientID(cfg.Spotify.ClientID),
+		spotifyauth.WithClientSecret(cfg.Spotify.ClientSecret),
 	)
-	token, err := auth.RefreshToken(context.Background(), &oauth2.Token{RefreshToken: cfg.RefreshToken})
+	token, err := auth.RefreshToken(context.Background(), &oauth2.Token{RefreshToken: cfg.Spotify.RefreshToken})
 	if err != nil {
 		panic(err)
 	}
@@ -78,9 +78,9 @@ func (c *SpotifyClient) GetNowPlaying(raw bool) (any, error) {
 					},
 					Artists: artists,
 					Album: &TrackAlbum{
-						Name:   now.Item.Album.Name,
-						URL:    now.Item.Album.ExternalURLs["spotify"],
-						ArtURL: now.Item.Album.Images[0].URL,
+						Name:     now.Item.Album.Name,
+						URL:      now.Item.Album.ExternalURLs["spotify"],
+						ImageURL: now.Item.Album.Images[0].URL,
 					},
 				}, nil
 			}
@@ -110,9 +110,9 @@ func (c *SpotifyClient) GetLastPlayed(raw bool) (any, error) {
 				PlayedAt:  &last[0].PlayedAt,
 				Artists:   artists,
 				Album: &TrackAlbum{
-					Name:   track.Album.Name,
-					URL:    track.Album.ExternalURLs["spotify"],
-					ArtURL: track.Album.Images[0].URL,
+					Name:     track.Album.Name,
+					URL:      track.Album.ExternalURLs["spotify"],
+					ImageURL: track.Album.Images[0].URL,
 				},
 			}, nil
 		}

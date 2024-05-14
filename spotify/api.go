@@ -35,7 +35,7 @@ type TrackArtist struct {
 }
 
 type TrackAlbum struct {
-	ArtURL string `json:"art_url"`
-	Name   string `json:"name"`
-	URL    string `json:"url"`
+	ImageURL string `json:"image_url"`
+	Name     string `json:"name"`
+	URL      string `json:"url"`
 }
