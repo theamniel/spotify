@@ -27,41 +27,41 @@ func poll(client *SpotifyClient) {
 	for {
 		if client.IsConnected() {
 			if !client.Socket.HasState() {
-				if spotifyStatus, err := client.GetSpotifyStatus(); err != nil {
+				if track, err := client.GetSpotifyStatus(); err != nil {
 					client.onError()
 					continue
 				} else {
-					if client.pollRate > 5 {
-						client.pollRate = 5
+					if client.pollRate > DefaultPollRate {
+						client.pollRate = DefaultPollRate
 					}
-					client.Socket.SetState(spotifyStatus)
+					client.Socket.SetState(track)
 				}
 				continue
 			} else if client.Socket.Listeners() > 0 {
-				if spotifyStatus, err := client.GetSpotifyStatus(); err != nil {
+				if track, err := client.GetSpotifyStatus(); err != nil {
 					client.onError()
 					continue
 				} else {
-					if spotifyStatus.IsPlaying && client.pollRate > 5 {
-						client.pollRate = 5
+					if track.IsPlaying && client.pollRate > DefaultPollRate {
+						client.pollRate = DefaultPollRate
 					}
-					state := client.Socket.GetState()
+					oldTrack := client.Socket.GetState()
 
 					// ------ TRACK CHANGE -----
-					if spotifyStatus.ID != state.ID {
-						client.Socket.Broadcast <- socket.FormatMessage(socket.SocketDispatch, "TRACK_CHANGE", spotifyStatus)
+					if track.ID != oldTrack.ID {
+						client.Socket.Broadcast <- socket.Dispatch("TRACK_CHANGE", track)
 					}
 
 					// ----- TRACK PROGRESS -----
-					if spotifyStatus.ID == state.ID && spotifyStatus.IsPlaying {
-						client.Socket.Broadcast <- socket.FormatMessage(socket.SocketDispatch, "TRACK_PROGRESS", spotifyStatus.Timestamp.Progress)
+					if track.ID == oldTrack.ID && track.IsPlaying {
+						client.Socket.Broadcast <- socket.Dispatch("TRACK_PROGRESS", track.Timestamp.Progress)
 					}
 
 					// -------- TRACK STATE CHANGE -------
-					if spotifyStatus.IsPlaying != state.IsPlaying {
-						client.Socket.Broadcast <- socket.FormatMessage(socket.SocketDispatch, "TRACK_STATE", &socket.JSON{"is_playing": spotifyStatus.IsPlaying})
+					if track.IsPlaying != oldTrack.IsPlaying {
+						client.Socket.Broadcast <- socket.Dispatch("TRACK_STATE", &socket.JSON{"is_playing": track.IsPlaying})
 					}
-					client.Socket.SetState(spotifyStatus)
+					client.Socket.SetState(track)
 				}
 			}
 		}
@@ -70,9 +70,9 @@ func poll(client *SpotifyClient) {
 }
 
 func (client *SpotifyClient) onError() {
-	if client.pollRate < 8 {
-		client.pollRate += 1
+	if client.pollRate > (DefaultPollRate + 3) {
+		client.pollRate = (DefaultPollRate + 3)
 	} else {
-		client.pollRate = 8
+		client.pollRate += 1
 	}
 }

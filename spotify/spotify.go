@@ -11,6 +11,8 @@ import (
 	"spotify.amniel/socket"
 )
 
+const DefaultPollRate time.Duration = 5
+
 type SpotifyClient struct {
 	Socket *socket.Socket[Track]
 	Client *spotify.Client
@@ -32,7 +34,7 @@ func New(cfg *config.Config) *SpotifyClient {
 	return &SpotifyClient{
 		Client:      spotify.New(auth.Client(context.Background(), token), spotify.WithRetry(true)),
 		isConnected: len(token.AccessToken) > 0,
-		pollRate:    5,
+		pollRate:    DefaultPollRate,
 		Socket:      nil,
 	}
 }

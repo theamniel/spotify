@@ -8,9 +8,10 @@ import (
 )
 
 const (
-	HeartbeatWaitTimeout = 5 * time.Second
-	HeartbeatTimeout     = 35 * time.Second
-	InitializeTimeout    = 15 * time.Second
+	// Heatbeat if client don't respond
+	HeartbeatWaitTimeout = 10 * time.Second
+	// Heartbeat
+	HeartbeatTimeout = 35 * time.Second
 )
 
 type Socket[T any] struct {
@@ -76,9 +77,9 @@ func (s *Socket[T]) Run() {
 		case client := <-s.Register:
 			if s.pool.Has(client.ID) {
 				s.pool.Delete(client.ID)
-				client.Close(CloseAlreadyAuthenticated)
+				client.Close(CloseAlreadyAuthenticated, "Already authenticated")
 			} else {
-				client.Send <- &Message{OP: SocketHello}
+				client.Send <- &Message{OP: SocketHello, D: JSON{"heartbeat_interval": HeartbeatTimeout / time.Millisecond}}
 				go s.WatchClient(client)
 			}
 		case client := <-s.Unregister:
@@ -91,7 +92,7 @@ func (s *Socket[T]) Run() {
 
 func (s *Socket[T]) WatchClient(client *Client) {
 	heartbeat := false
-	heartbeatTime := time.NewTicker(InitializeTimeout)
+	heartbeatTime := time.NewTicker(HeartbeatTimeout)
 	defer heartbeatTime.Stop()
 
 	for {
@@ -99,36 +100,38 @@ func (s *Socket[T]) WatchClient(client *Client) {
 		case message, ok := <-client.Message:
 			if !ok {
 				s.Unregister <- client
-				client.Close(websocket.CloseInternalServerErr)
+				client.Close(websocket.CloseInternalServerErr, "Internal server error")
 				return
 			}
 
 			// OPCODE: Initialize (2)
 			if message.OP == SocketInitialize {
 				if !s.pool.Has(client.ID) {
-					client.Send <- &Message{SocketDispatch, "INITIAL_STATE", &s.state}
+					client.Send <- &Message{SocketDispatch, "INITIAL_STATE", &s.state, 0}
 					s.pool.Set(client.ID, client)
-					heartbeatTime.Reset(HeartbeatTimeout)
-				} else {
-					s.pool.Delete(client.ID)
-					client.Close(CloseAlreadyAuthenticated)
-					return
+					continue
 				}
+				s.pool.Delete(client.ID)
+				client.Close(CloseAlreadyAuthenticated, "Already authenticated") // force disconnect
+				return
+
 				// OPCODE: Heartbeat (3)
 			} else if message.OP == SocketHeartbeat {
 				if s.pool.Has(client.ID) {
 					client.Send <- &Message{OP: SocketHeartbeatACK}
 					heartbeatTime.Reset(HeartbeatTimeout)
-					heartbeat = false // reset
-				} else {
-					s.pool.Delete(client.ID)
-					client.Close(CloseNotAuthenticated)
-					return
+					if heartbeat {
+						heartbeat = false
+					} // reset
+					continue
 				}
+				s.pool.Delete(client.ID)
+				client.Close(CloseNotAuthenticated, "Not authenticated")
+				return
 
 			} else {
 				s.Unregister <- client
-				client.Close(CloseInvalidOpcode)
+				client.Close(CloseInvalidOpcode, "Invalid opcode")
 				return
 			}
 
@@ -141,8 +144,9 @@ func (s *Socket[T]) WatchClient(client *Client) {
 					continue
 				}
 			}
+			// inactive/"zombie" connection
 			s.Unregister <- client
-			client.Close(CloseByServerRequest)
+			client.Close(CloseByServerRequest, "Disconnect by server request")
 			return
 		}
 	}

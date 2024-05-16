@@ -16,8 +16,7 @@ You should send `Opcode 2: Initialize` immediately after receiving Opcode 1.
 | 2      | Initialize   | This is what the client sends when receiving opcode `1` | Send only |
 | 3      | Heartbeat    | Clients should send Opcode 3                            | Send / Receive | 
 | 4      | HeartbeatACK | Sends when clients sends heartbeat                      | Receive only |
-| 5      | Reconnect    | MISSING IMPLEMENT                                       | Receive only |
-| 6      | Resume       | MISSING IMPLEMENT                                       | Send only |
+| 5      | Error        | Sent to the client when an error occurs                 | Receive only |
 
 ### Events
 

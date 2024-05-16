@@ -17,6 +17,9 @@ const (
 
 	// Sends this when clients sends heartbeat [RECEIVE ONLY]
 	SocketHeartbeatACK
+
+	// Sent to the client when an error occurs [RECEIVE ONLY]
+	SocketError
 )
 
 const (
@@ -47,11 +50,14 @@ type Message struct {
 
 	// Data payload
 	D any `json:"d,omitempty"`
+
+	// retries for send a message
+	retries int `json:"-"`
 }
 
-// Format Message to struct
-func FormatMessage(op int, t string, d any) *Message {
-	return &Message{op, t, d}
+// Dispatch event to struct
+func Dispatch(t string, d any) *Message {
+	return &Message{OP: SocketDispatch, T: t, D: d, retries: 0}
 }
 
 // Convert struct to []bytes
