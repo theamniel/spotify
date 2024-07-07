@@ -3,10 +3,11 @@ package spotify
 import (
 	"time"
 
+	"spotify/config"
+	"spotify/socket"
+
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
-	"spotify.amniel/config"
-	"spotify.amniel/socket"
 )
 
 func Socket(client *SpotifyClient, cfg *config.SocketConfig) fiber.Handler {

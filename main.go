@@ -6,13 +6,14 @@ import (
 	"log"
 	"time"
 
+	"spotify/config"
+	"spotify/middlewares"
+	"spotify/spotify"
+
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"spotify.amniel/config"
-	"spotify.amniel/middlewares"
-	"spotify.amniel/spotify"
 
 	"go.uber.org/fx"
 )

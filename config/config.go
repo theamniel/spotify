@@ -3,9 +3,10 @@ package config
 import (
 	"os"
 
+	"spotify/utils"
+
 	"github.com/BurntSushi/toml"
 	"github.com/joho/godotenv"
-	"spotify.amniel/utils"
 )
 
 func Load() (*Config, error) {
