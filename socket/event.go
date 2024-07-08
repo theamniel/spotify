@@ -56,8 +56,33 @@ type Message struct {
 }
 
 // Dispatch event to struct
-func Dispatch(t string, d any) *Message {
-	return &Message{OP: SocketDispatch, T: t, D: d, retries: 0}
+func Dispatch(event string, data any) *Message {
+	return &Message{OP: SocketDispatch, T: event, D: data, retries: 0}
+}
+
+// Hello event to struct
+func Hello(d any) *Message {
+	return &Message{OP: SocketHello, T: "", D: d, retries: 0}
+}
+
+// Initialize event to struct
+func Initialize(t string, d any) *Message {
+	return &Message{OP: SocketInitialize, T: t, D: d, retries: 0}
+}
+
+// HeartbeatACK event to struct
+func HeartbeatACK() *Message {
+	return &Message{OP: SocketHeartbeatACK, T: "", D: nil, retries: 0}
+}
+
+// Heartbeat event to struct
+func Heartbeat() *Message {
+	return &Message{OP: SocketHeartbeat, T: "", D: nil, retries: 0}
+}
+
+// Error event to struct
+func Error(msg any) *Message {
+	return &Message{OP: SocketError, T: "", D: msg, retries: 0}
 }
 
 // Convert struct to []bytes

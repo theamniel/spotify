@@ -21,7 +21,6 @@ const (
 type Client struct {
 	ID                string
 	Conn              *websocket.Conn
-	Send              chan *Message
 	Message           chan *Message
 	Done              chan struct{}
 	isConnectionAlive bool
@@ -32,7 +31,6 @@ func NewClient(conn *websocket.Conn) *Client {
 	return &Client{
 		ID:                utils.UUID(),
 		Conn:              conn,
-		Send:              make(chan *Message),
 		Message:           make(chan *Message),
 		Done:              make(chan struct{}),
 		isConnectionAlive: conn != nil,
@@ -59,14 +57,34 @@ func (socket *Client) Close(code int, msg string) {
 	socket.SetAlive(false)
 }
 
+func (socket *Client) Send(event *Message) {
+	if !socket.IsAlive() {
+		if event.retries <= MaxSendRetry {
+			go func() {
+				time.Sleep(RetrySendMessage)
+				event.retries += 1
+				socket.Send(event)
+			}()
+		}
+		return
+	}
+
+	socket.mu.RLock()
+	err := socket.Conn.WriteMessage(websocket.TextMessage, event.ToBytes())
+	socket.mu.RUnlock()
+
+	if err != nil {
+		socket.Close(websocket.CloseInternalServerErr, err.Error())
+	}
+}
+
 func (socket *Client) Run() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go reader(ctx, socket)
-	go writer(ctx, socket)
+	// go writer(ctx, socket)
 
 	<-socket.Done
-
 	cancel()
 }
 
@@ -106,38 +124,10 @@ func reader(ctx context.Context, socket *Client) {
 			// We have a message and we fire the message event
 			var event Message
 			if err := json.Unmarshal(message, &event); err != nil {
-				socket.Message <- &Message{OP: SocketError, D: fmt.Sprintf("Invalid message body: %x", err)}
+				socket.Message <- Error(fmt.Sprintf("Invalid message body: %x", err))
 				continue
 			}
 			socket.Message <- &event
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-
-func writer(ctx context.Context, socket *Client) {
-	for {
-		select {
-		case event := <-socket.Send:
-			if !socket.IsAlive() {
-				if event.retries <= MaxSendRetry {
-					go func() {
-						time.Sleep(RetrySendMessage)
-						event.retries += 1
-						socket.Send <- event
-					}()
-				}
-				continue
-			}
-
-			socket.mu.RLock()
-			err := socket.Conn.WriteMessage(websocket.TextMessage, event.ToBytes())
-			socket.mu.RUnlock()
-
-			if err != nil { // Internal server error, disconnect.
-				socket.Close(websocket.CloseInternalServerErr, err.Error())
-			}
 		case <-ctx.Done():
 			return
 		}

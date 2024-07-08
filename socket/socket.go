@@ -15,10 +15,6 @@ const (
 )
 
 type Socket[T any] struct {
-	Broadcast  chan *Message
-	Register   chan *Client
-	Unregister chan *Client
-
 	mu    sync.RWMutex
 	state *T
 	pool  *Pool
@@ -26,19 +22,16 @@ type Socket[T any] struct {
 
 func New[T any]() *Socket[T] {
 	return &Socket[T]{
-		pool:       NewPool(),
-		Broadcast:  make(chan *Message),
-		Register:   make(chan *Client),
-		Unregister: make(chan *Client),
-		state:      nil,
+		pool:  NewPool(),
+		state: nil,
 	}
 }
 
 func (s *Socket[T]) Handle(conn *websocket.Conn) {
 	client := NewClient(conn)
-	s.Register <- client
+	s.Register(client)
 	client.Run()
-	s.Unregister <- client
+	s.Unregister(client)
 }
 
 func (s *Socket[T]) SetState(val *T) {
@@ -63,30 +56,29 @@ func (s *Socket[T]) Listeners() int {
 	return s.pool.Len()
 }
 
-func (s *Socket[T]) Run() {
-	for {
-		select {
-		case message := <-s.Broadcast:
-			for _, client := range s.pool.GetAll() {
-				go func(client *Client) { // send to each client in parallel
-					if client != nil && client.IsAlive() {
-						client.Send <- message
-					}
-				}(client)
+func (s *Socket[T]) Broadcast(msg *Message) {
+	for _, client := range s.pool.GetAll() {
+		go func(client *Client) { // send to each client in parallel
+			if client != nil && client.IsAlive() {
+				go client.Send(msg)
 			}
-		case client := <-s.Register:
-			if s.pool.Has(client.ID) {
-				s.pool.Delete(client.ID)
-				client.Close(CloseAlreadyAuthenticated, "Already authenticated")
-			} else {
-				client.Send <- &Message{OP: SocketHello, D: JSON{"heartbeat_interval": HeartbeatTimeout / time.Millisecond}}
-				go s.WatchClient(client)
-			}
-		case client := <-s.Unregister:
-			if s.pool.Has(client.ID) {
-				s.pool.Delete(client.ID)
-			}
-		}
+		}(client)
+	}
+}
+
+func (s *Socket[T]) Register(client *Client) {
+	if s.pool.Has(client.ID) {
+		s.pool.Delete(client.ID)
+		client.Close(CloseAlreadyAuthenticated, "Already authenticated")
+		return
+	}
+	go s.WatchClient(client)
+	client.Send(Hello(JSON{"heartbeat_interval": HeartbeatTimeout / time.Millisecond}))
+}
+
+func (s *Socket[T]) Unregister(client *Client) {
+	if s.pool.Has(client.ID) {
+		s.pool.Delete(client.ID)
 	}
 }
 
@@ -99,7 +91,8 @@ func (s *Socket[T]) WatchClient(client *Client) {
 		select {
 		case message, ok := <-client.Message:
 			if !ok {
-				s.Unregister <- client
+				// s.Unregister <- client
+				go s.Unregister(client)
 				client.Close(websocket.CloseInternalServerErr, "Internal server error")
 				return
 			}
@@ -107,7 +100,7 @@ func (s *Socket[T]) WatchClient(client *Client) {
 			// OPCODE: Initialize (2)
 			if message.OP == SocketInitialize {
 				if !s.pool.Has(client.ID) {
-					client.Send <- &Message{SocketDispatch, "INITIAL_STATE", &s.state, 0}
+					go client.Send(Dispatch("INITIAL_STATE", &s.state))
 					s.pool.Set(client.ID, client)
 					continue
 				}
@@ -118,7 +111,7 @@ func (s *Socket[T]) WatchClient(client *Client) {
 				// OPCODE: Heartbeat (3)
 			} else if message.OP == SocketHeartbeat {
 				if s.pool.Has(client.ID) {
-					client.Send <- &Message{OP: SocketHeartbeatACK}
+					go client.Send(HeartbeatACK())
 					heartbeatTime.Reset(HeartbeatTimeout)
 					if heartbeat {
 						heartbeat = false
@@ -130,7 +123,8 @@ func (s *Socket[T]) WatchClient(client *Client) {
 				return
 
 			} else {
-				s.Unregister <- client
+				// s.Unregister <- client
+				go s.Unregister(client)
 				client.Close(CloseInvalidOpcode, "Invalid opcode")
 				return
 			}
@@ -138,14 +132,14 @@ func (s *Socket[T]) WatchClient(client *Client) {
 		case <-heartbeatTime.C:
 			if s.pool.Has(client.ID) { // client already register...
 				if !heartbeat {
-					client.Send <- &Message{OP: SocketHeartbeat}
+					go client.Send(Heartbeat())
 					heartbeat = true
 					heartbeatTime.Reset(HeartbeatTimeout) // wait 5 sec
 					continue
 				}
 			}
 			// inactive/"zombie" connection
-			s.Unregister <- client
+			s.Unregister(client)
 			client.Close(CloseByServerRequest, "Disconnect by server request")
 			return
 		}

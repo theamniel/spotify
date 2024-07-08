@@ -12,8 +12,6 @@ import (
 
 func Socket(client *SpotifyClient, cfg *config.SocketConfig) fiber.Handler {
 	client.Socket = socket.New[Track]()
-	// start socket "listeners"
-	go client.Socket.Run()
 	// start poll data
 	go poll(client)
 
@@ -50,17 +48,17 @@ func poll(client *SpotifyClient) {
 
 					// ------ TRACK CHANGE -----
 					if track.ID != oldTrack.ID {
-						client.Socket.Broadcast <- socket.Dispatch("TRACK_CHANGE", track)
+						client.Socket.Broadcast(socket.Dispatch("TRACK_CHANGE", track))
 					}
 
 					// ----- TRACK PROGRESS -----
 					if track.ID == oldTrack.ID && track.IsPlaying {
-						client.Socket.Broadcast <- socket.Dispatch("TRACK_PROGRESS", track.Timestamp.Progress)
+						client.Socket.Broadcast(socket.Dispatch("TRACK_PROGRESS", track.Timestamp.Progress))
 					}
 
 					// -------- TRACK STATE CHANGE -------
 					if track.IsPlaying != oldTrack.IsPlaying {
-						client.Socket.Broadcast <- socket.Dispatch("TRACK_STATE", &socket.JSON{"is_playing": track.IsPlaying})
+						client.Socket.Broadcast(socket.Dispatch("TRACK_STATE", &socket.JSON{"is_playing": track.IsPlaying}))
 					}
 					client.Socket.SetState(track)
 				}
