@@ -92,32 +92,37 @@ Events are received on `Opcode 0: Event` - the event type will be part of the ro
 ```
 
 ##### `TRACK_CHANGE`
+Triggers when the song changes returning the object of the new song
 ```json
 {
  "op": 2,
  "t": "TRACK_CHANGE",
  "d": {
-  // same object of INITIAL_STATE
+  "id": "track id",
+  "title": "track title",
+  "...": "..."
  } 
 }
 ```
 
 ##### `TRACK_PROGRESS`
+It fires each in the 5-second range with the current progress of the song
 ```json
 {
   "op": 2,
   "t": "TRACK_PROGRESS",
-  "d": 728 // now_playing -> progress_ms
+  "d": 728
 }
 ```
 
 ##### `TRACK_STATE`
+Triggers when player state changes
 ```json
 {
   "op": 2,
   "t": "TRACK_STATE",
   "d": {
-    "is_playing": true // true/false
+    "is_playing": true
   }
 }
 ```
