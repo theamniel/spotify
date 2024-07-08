@@ -8,11 +8,11 @@ import (
 	"regexp"
 )
 
-var values = regexp.MustCompile(`[#]\{([\w\.]+)\}`)
+var valueRegex = regexp.MustCompile(`[#]\{([\w\.]+)\}`)
 
 // Replace values from string in os environement (source)
 func ReplaceValues(bsrc []byte) []byte {
-	for _, items := range values.FindAllSubmatch(bsrc, -1) {
+	for _, items := range valueRegex.FindAllSubmatch(bsrc, -1) {
 		env := os.Getenv(string(items[1]))
 		if env != "" {
 			bsrc = bytes.ReplaceAll(bsrc, items[0], []byte(env))
