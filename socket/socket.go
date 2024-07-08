@@ -31,7 +31,7 @@ func (s *Socket[T]) Handle(conn *websocket.Conn) {
 	client := NewClient(conn)
 	s.Register(client)
 	client.Run()
-	s.Unregister(client)
+	s.Unregister(client.ID)
 }
 
 func (s *Socket[T]) SetState(val *T) {
@@ -76,9 +76,9 @@ func (s *Socket[T]) Register(client *Client) {
 	client.Send(Hello(JSON{"heartbeat_interval": HeartbeatTimeout / time.Millisecond}))
 }
 
-func (s *Socket[T]) Unregister(client *Client) {
-	if s.pool.Has(client.ID) {
-		s.pool.Delete(client.ID)
+func (s *Socket[T]) Unregister(clientID string) {
+	if s.pool.Has(clientID) {
+		s.pool.Delete(clientID)
 	}
 }
 
@@ -86,13 +86,12 @@ func (s *Socket[T]) WatchClient(client *Client) {
 	heartbeat := false
 	heartbeatTime := time.NewTicker(HeartbeatTimeout)
 	defer heartbeatTime.Stop()
+	defer s.Unregister(client.ID)
 
 	for {
 		select {
 		case message, ok := <-client.Message:
 			if !ok {
-				// s.Unregister <- client
-				go s.Unregister(client)
 				client.Close(websocket.CloseInternalServerErr, "Internal server error")
 				return
 			}
@@ -123,8 +122,6 @@ func (s *Socket[T]) WatchClient(client *Client) {
 				return
 
 			} else {
-				// s.Unregister <- client
-				go s.Unregister(client)
 				client.Close(CloseInvalidOpcode, "Invalid opcode")
 				return
 			}
@@ -139,7 +136,6 @@ func (s *Socket[T]) WatchClient(client *Client) {
 				}
 			}
 			// inactive/"zombie" connection
-			s.Unregister(client)
 			client.Close(CloseByServerRequest, "Disconnect by server request")
 			return
 		}
