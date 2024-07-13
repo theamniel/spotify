@@ -30,10 +30,11 @@ func main() {
 			ConfigureRoutes,
 			Server,
 		),
+		fx.NopLogger,
 	).Run()
 }
 
-func Server(lc fx.Lifecycle, app *fiber.App, cfg *config.Config) {
+func Server(lc fx.Lifecycle, app *fiber.App, client *spotify.SpotifyClient, cfg *config.Config) {
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
 			loc, locErr := time.LoadLocation(cfg.Server.TimeZone)
@@ -44,7 +45,7 @@ func Server(lc fx.Lifecycle, app *fiber.App, cfg *config.Config) {
 			log.SetPrefix("[" + time.Now().In(loc).Format("15:04:05") + "] ")
 			app.Hooks().OnListen(func(ld fiber.ListenData) error {
 				if !fiber.IsChild() {
-					log.Printf("Running Socket server on \"%s:%s\"\n", cfg.Server.Host, cfg.Server.Port)
+					log.Printf("Running Socket server on \"%s:%s\"\n", ld.Host, ld.Port)
 					log.Println("Press CTRL-C to stop the application")
 				}
 				return nil
@@ -60,6 +61,9 @@ func Server(lc fx.Lifecycle, app *fiber.App, cfg *config.Config) {
 		OnStop: func(ctx context.Context) error {
 			if !fiber.IsChild() {
 				log.Println("Shutting down Socket server...")
+				if client.Socket != nil {
+					client.Socket.Close()
+				}
 			}
 			return app.Shutdown()
 		},

@@ -17,12 +17,12 @@ const (
 type Socket[T any] struct {
 	mu    sync.RWMutex
 	state *T
-	pool  *Pool
+	pool  *Pool[string, *Client]
 }
 
 func New[T any]() *Socket[T] {
 	return &Socket[T]{
-		pool:  NewPool(),
+		pool:  NewPool[string, *Client](),
 		state: nil,
 	}
 }
@@ -57,7 +57,7 @@ func (s *Socket[T]) Listeners() int {
 }
 
 func (s *Socket[T]) Broadcast(msg *Message) {
-	for _, client := range s.pool.GetAll() {
+	for _, client := range s.pool.All() {
 		go func(client *Client) { // send to each client in parallel
 			if client != nil && client.IsAlive() {
 				go client.Send(msg)
@@ -80,6 +80,15 @@ func (s *Socket[T]) Unregister(clientID string) {
 	if s.pool.Has(clientID) {
 		s.pool.Delete(clientID)
 	}
+}
+
+func (s *Socket[T]) Close() {
+	for _, client := range s.pool.All() {
+		if client != nil {
+			client.Close(websocket.CloseNormalClosure, "")
+		}
+	}
+	s.pool.Flush()
 }
 
 func (s *Socket[T]) WatchClient(client *Client) {
