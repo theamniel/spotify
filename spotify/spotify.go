@@ -53,11 +53,11 @@ func (c *SpotifyClient) GetSpotifyStatus() (*Track, error) {
 		}
 	}
 
-	last, err := c.GetLastPlayed(false)
+	last, err := c.GetLastPlayed(false, 1)
 	if err != nil {
 		return nil, err
 	}
-	return last.(*Track), nil
+	return last.([]*Track)[0], nil
 }
 
 func (c *SpotifyClient) GetNowPlaying(raw bool) (any, error) {
@@ -96,31 +96,38 @@ func (c *SpotifyClient) GetNowPlaying(raw bool) (any, error) {
 	}
 }
 
-func (c *SpotifyClient) GetLastPlayed(raw bool) (any, error) {
+func (c *SpotifyClient) GetLastPlayed(raw bool, limit int) (any, error) {
 	if last, err := c.Client.PlayerRecentlyPlayed(context.Background()); err != nil {
 		return nil, err
 	} else {
-		if !raw {
-			track := last[0].Track
+		if limit > len(last) || limit < 1 {
+			limit = len(last)
+		}
+
+		if raw {
+			return last[:limit], nil
+		}
+		var tracks []*Track
+		for i := range limit {
 			var artists []Artist
-			for _, artist := range track.Artists {
+			for _, artist := range last[i].Track.Artists {
 				artists = append(artists, Artist{Name: artist.Name, URL: artist.ExternalURLs["spotify"]})
 			}
-			return &Track{
-				ID:        track.ID,
-				Title:     track.Name,
-				URL:       track.ExternalURLs["spotify"],
+			tracks = append(tracks, &Track{
+				ID:        last[i].Track.ID,
+				Title:     last[i].Track.Name,
+				URL:       last[i].Track.ExternalURLs["spotify"],
 				IsPlaying: false,
-				PlayedAt:  &last[0].PlayedAt,
+				PlayedAt:  &last[i].PlayedAt,
 				Artists:   artists,
 				Album: &Album{
-					ID:       track.Album.ID,
-					ImageURL: track.Album.Images[0].URL,
-					Name:     track.Album.Name,
-					URL:      track.Album.ExternalURLs["spotify"],
+					ID:       last[i].Track.Album.ID,
+					ImageURL: last[i].Track.Album.Images[0].URL,
+					Name:     last[i].Track.Album.Name,
+					URL:      last[i].Track.Album.ExternalURLs["spotify"],
 				},
-			}, nil
+			})
 		}
-		return last, nil
+		return tracks, nil
 	}
 }

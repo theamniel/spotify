@@ -104,19 +104,23 @@ func reader(ctx context.Context, socket *Client) {
 			socket.mu.RUnlock()
 
 			if mt == websocket.PingMessage {
+				// todo
 				continue
 			}
 
 			if mt == websocket.PongMessage {
+				// todo
 				continue
 			}
 
 			if mt == websocket.CloseMessage {
+				// todo
 				socket.Close(websocket.CloseNormalClosure, "")
 				continue
 			}
 
 			if err != nil {
+				// todo
 				socket.Close(websocket.CloseAbnormalClosure, "")
 				continue
 			}

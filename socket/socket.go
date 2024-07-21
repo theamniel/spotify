@@ -22,21 +22,25 @@ type Socket[T any] struct {
 
 func New[T any]() *Socket[T] {
 	return &Socket[T]{
-		pool:  NewPool[string, *Client](),
-		state: nil,
+		pool: NewPool[string, *Client](),
 	}
 }
 
 func (s *Socket[T]) Handle(conn *websocket.Conn) {
 	client := NewClient(conn)
+	defer s.Unregister(client.ID)
+
 	s.Register(client)
 	client.Run()
-	s.Unregister(client.ID)
 }
 
-func (s *Socket[T]) SetState(val *T) {
+func (s *Socket[T]) SetState(value *T) {
 	s.mu.Lock()
-	s.state = val
+	if s.state == nil {
+		s.state = value
+	} else {
+		*s.state = *value
+	}
 	s.mu.Unlock()
 }
 
@@ -57,10 +61,12 @@ func (s *Socket[T]) Listeners() int {
 }
 
 func (s *Socket[T]) Broadcast(msg *Message) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	for _, client := range s.pool.All() {
 		go func(client *Client) { // send to each client in parallel
 			if client != nil && client.IsAlive() {
-				go client.Send(msg)
+				client.Send(msg)
 			}
 		}(client)
 	}
@@ -83,12 +89,18 @@ func (s *Socket[T]) Unregister(clientID string) {
 }
 
 func (s *Socket[T]) Close() {
-	for _, client := range s.pool.All() {
-		if client != nil {
-			client.Close(websocket.CloseNormalClosure, "")
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.pool.Len() > 0 {
+		for _, client := range s.pool.All() {
+			go func(client *Client) {
+				if client != nil {
+					client.Close(websocket.CloseNormalClosure, "")
+				}
+			}(client)
 		}
+		s.pool.Flush()
 	}
-	s.pool.Flush()
 }
 
 func (s *Socket[T]) WatchClient(client *Client) {
@@ -105,19 +117,19 @@ func (s *Socket[T]) WatchClient(client *Client) {
 				return
 			}
 
-			// OPCODE: Initialize (2)
-			if message.OP == SocketInitialize {
+			switch message.OP {
+			case SocketInitialize:
 				if !s.pool.Has(client.ID) {
 					go client.Send(Dispatch("INITIAL_STATE", &s.state))
 					s.pool.Set(client.ID, client)
 					continue
+				} else {
+					s.pool.Delete(client.ID)
+					client.Close(CloseAlreadyAuthenticated, "Already authenticated") // force disconnect
+					return
 				}
-				s.pool.Delete(client.ID)
-				client.Close(CloseAlreadyAuthenticated, "Already authenticated") // force disconnect
-				return
 
-				// OPCODE: Heartbeat (3)
-			} else if message.OP == SocketHeartbeat {
+			case SocketHeartbeat:
 				if s.pool.Has(client.ID) {
 					go client.Send(HeartbeatACK())
 					heartbeatTime.Reset(HeartbeatTimeout)
@@ -125,16 +137,16 @@ func (s *Socket[T]) WatchClient(client *Client) {
 						heartbeat = false
 					} // reset
 					continue
+				} else {
+					s.pool.Delete(client.ID)
+					client.Close(CloseNotAuthenticated, "Not authenticated")
+					return
 				}
-				s.pool.Delete(client.ID)
-				client.Close(CloseNotAuthenticated, "Not authenticated")
-				return
 
-			} else {
+			default:
 				client.Close(CloseInvalidOpcode, "Invalid opcode")
 				return
 			}
-
 		case <-heartbeatTime.C:
 			if s.pool.Has(client.ID) { // client already register...
 				if !heartbeat {

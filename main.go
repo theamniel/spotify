@@ -110,22 +110,18 @@ func ConfigureRoutes(app *fiber.App, client *spotify.SpotifyClient, cfg *config.
 	})
 
 	app.Get("/recently-played", func(c *fiber.Ctx) error {
-		raw, open, url := c.QueryBool("raw"), c.QueryBool("open"), ""
-		payload, err := client.GetLastPlayed(raw)
+		raw, open, limit, url := c.QueryBool("raw"), c.QueryBool("open"), c.QueryInt("limit"), ""
+		payload, err := client.GetLastPlayed(raw, limit)
 		if err != nil {
 			return c.Status(500).JSON(err)
 		}
 
-		if raw {
-			payload = payload.([]spotify.RecentlyPlayedItem)[0]
-			if open {
-				url = payload.(spotify.RecentlyPlayedItem).Track.ExternalURLs["spotify"]
-			}
-		} else if open {
-			url = payload.(*spotify.Track).URL
-		}
-
 		if open {
+			if raw {
+				url = payload.([]*spotify.RecentlyPlayedItem)[0].Track.ExternalURLs["spotify"]
+			} else {
+				url = payload.([]*spotify.Track)[0].URL
+			}
 			return c.Redirect(url, 308)
 		}
 		return c.Status(200).JSON(payload)
