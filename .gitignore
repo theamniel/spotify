@@ -9,6 +9,8 @@ logs
 **/*.ps*1
 **/*.json
 .scripts/
+bin/*
+!bin/*.toml
 
 # Editor directories and files
 .vscode/*
