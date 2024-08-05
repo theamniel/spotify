@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 
 	"spotify/config"
 	"spotify/middlewares"
@@ -19,6 +18,8 @@ import (
 )
 
 func main() {
+	log.SetFlags(log.Ltime)
+
 	fx.New(
 		fx.Provide(
 			config.Load,
@@ -37,12 +38,6 @@ func main() {
 func Server(lc fx.Lifecycle, app *fiber.App, client *spotify.SpotifyClient, cfg *config.Config) {
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			loc, locErr := time.LoadLocation(cfg.Server.TimeZone)
-			if locErr != nil {
-				loc = time.Local
-			}
-			log.SetFlags(0)
-			log.SetPrefix("[" + time.Now().In(loc).Format("15:04:05") + "] ")
 			app.Hooks().OnListen(func(ld fiber.ListenData) error {
 				if !fiber.IsChild() {
 					log.Printf("Running Socket server on \"%s:%s\"\n", ld.Host, ld.Port)
