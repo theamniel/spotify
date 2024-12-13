@@ -1,0 +1,28 @@
+{
+  "name": "ws-example",
+  "version": "0.0.0",
+  "description": "websocket client",
+  "main": "websocket.js",
+  "author": "Amniel",
+  "license": "ISC",
+  "engines": {
+    "node": ">=23"
+  },
+  "scripts": {
+    "dev": "jiti ./src/websocket"
+  },
+  "repository": {
+    "type": "git",
+    "url": "github.com/theamniel/spotify"
+  },
+ 
+  "dependencies": {
+    "jiti": "^2.4.1",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/ws": "^8.5.13",
+    "typescript": "^5.7.2"
+  }
+}

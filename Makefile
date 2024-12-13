@@ -57,6 +57,9 @@ fmt:
 
 build: build-grpc build-server
 
+test:
+	@cd .example && npm run dev
+
 run-grpc:
 	@$(BINARY_OUTPUT_GRPC)
 
