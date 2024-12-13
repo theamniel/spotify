@@ -7,7 +7,8 @@ import (
 
 	"spotify/config"
 	"spotify/middlewares"
-	"spotify/spotify"
+	"spotify/services/grpc"
+	"spotify/services/spotify"
 
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
@@ -22,8 +23,9 @@ func main() {
 
 	fx.New(
 		fx.Provide(
-			config.Load,
-			spotify.New,
+			config.Load[config.Config],
+			grpc.Connect,
+			spotify.NewGRPC,
 			ConfigureApp,
 		),
 		fx.Invoke(

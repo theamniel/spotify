@@ -124,7 +124,6 @@ func (s *Socket[T]) WatchClient(client *Client) {
 					s.pool.Set(client.ID, client)
 					continue
 				} else {
-					s.pool.Delete(client.ID)
 					client.Close(CloseAlreadyAuthenticated, "Already authenticated") // force disconnect
 					return
 				}
@@ -138,7 +137,6 @@ func (s *Socket[T]) WatchClient(client *Client) {
 					} // reset
 					continue
 				} else {
-					s.pool.Delete(client.ID)
 					client.Close(CloseNotAuthenticated, "Not authenticated")
 					return
 				}
@@ -156,7 +154,7 @@ func (s *Socket[T]) WatchClient(client *Client) {
 					continue
 				}
 			}
-			// inactive/"zombie" connection
+			// inactive/zombie connection
 			client.Close(CloseByServerRequest, "Disconnect by server request")
 			return
 		}

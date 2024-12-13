@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+option go_package = "spotify/services/grpc/proto";
+
+package proto;
+
+message Request {
+  string ID = 1;
+}
+
+message Reponse {
+  string ID = 1;
+  string E = 2;
+  optional Track track = 3;
+  optional int64 progress = 4;
+}
+
+message Track {
+  Album album = 1;
+  repeated Artist artist = 2;
+  string ID = 3;
+  bool is_playing = 5;
+  optional int64 played_at = 6;
+  optional Timestamp timestamp = 7;
+  string title = 8;
+  string URL = 9;
+}
+
+message Timestamp { 
+  int64 progress = 1;
+  int64 duration = 2;
+}
+
+message Artist {
+  string name = 1;
+  string URL = 2;
+}
+
+message Album {
+  string imageURL = 1;
+  string name = 2;
+  string ID = 3;
+  string URL = 4;
+}
+
+service Spotify {
+  rpc GetTrack(Request) returns (Track);
+  rpc OnListen(Request) returns (stream Reponse);
+}

@@ -9,8 +9,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func Load() (*Config, error) {
-	dir, file, err := utils.Executable()
+func Load[T any]() (*T, error) {
+	dir, _, err := utils.Executable()
 	if err != nil {
 		return nil, err
 	}
@@ -18,11 +18,10 @@ func Load() (*Config, error) {
 	if err := godotenv.Load(); err != nil {
 		return nil, err
 	}
-
-	return LoadFile(dir + file + ".toml")
+	return LoadFile[T](dir + "spotify.server.toml")
 }
 
-func LoadFile(fileName string) (*Config, error) {
+func LoadFile[T any](fileName string) (*T, error) {
 	if fileName[len(fileName)-5:] != ".toml" {
 		fileName += ".toml"
 	}
@@ -36,7 +35,7 @@ func LoadFile(fileName string) (*Config, error) {
 		return nil, err
 	}
 
-	var cfg Config
+	var cfg T
 	if err := toml.Unmarshal(utils.ReplaceValues(data), &cfg); err != nil {
 		return nil, err
 	}

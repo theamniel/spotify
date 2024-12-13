@@ -3,6 +3,7 @@ package config
 type (
 	Config struct {
 		Server  *ServerConfig  `toml:"server"`
+		Grpc    *GrpcConfig    `toml:"grpc"`
 		Socket  *SocketConfig  `toml:"socket"`
 		Spotify *SpotifyConfig `toml:"spotify"`
 	}
@@ -12,6 +13,11 @@ type (
 		Port     string `toml:"port"`
 		TimeZone string `toml:"timeZone"`
 		Prefork  bool   `toml:"prefork"`
+	}
+
+	GrpcConfig struct {
+		Host string `toml:"host"`
+		Port string `toml:"port"`
 	}
 
 	SocketConfig struct {

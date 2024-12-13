@@ -5,7 +5,8 @@ import (
 	"time"
 
 	"spotify/config"
-	"spotify/socket"
+	"spotify/services/grpc/proto"
+	"spotify/services/socket"
 
 	"github.com/zmb3/spotify/v2"
 	spotifyauth "github.com/zmb3/spotify/v2/auth"
@@ -17,9 +18,29 @@ const DefaultPollRate time.Duration = 5
 type SpotifyClient struct {
 	Socket *socket.Socket[Track]
 	Client *spotify.Client
+	Rpc    proto.SpotifyClient
 
-	pollRate    time.Duration
+	PollRate    time.Duration
 	isConnected bool
+}
+
+func NewGRPC(cfg *config.Config, rpc proto.SpotifyClient) *SpotifyClient {
+	auth := spotifyauth.New(
+		spotifyauth.WithClientID(cfg.Spotify.ClientID),
+		spotifyauth.WithClientSecret(cfg.Spotify.ClientSecret),
+	)
+	token, err := auth.RefreshToken(context.Background(), &oauth2.Token{RefreshToken: cfg.Spotify.RefreshToken})
+	if err != nil {
+		panic(err)
+	}
+
+	return &SpotifyClient{
+		Client:      spotify.New(auth.Client(context.Background(), token), spotify.WithRetry(true)),
+		isConnected: len(token.AccessToken) > 0,
+		PollRate:    DefaultPollRate,
+		Socket:      nil,
+		Rpc:         rpc,
+	}
 }
 
 func New(cfg *config.Config) *SpotifyClient {
@@ -35,8 +56,9 @@ func New(cfg *config.Config) *SpotifyClient {
 	return &SpotifyClient{
 		Client:      spotify.New(auth.Client(context.Background(), token), spotify.WithRetry(true)),
 		isConnected: len(token.AccessToken) > 0,
-		pollRate:    DefaultPollRate,
+		PollRate:    DefaultPollRate,
 		Socket:      nil,
+		Rpc:         nil,
 	}
 }
 
@@ -65,7 +87,7 @@ func (c *SpotifyClient) GetNowPlaying(raw bool) (any, error) {
 		return nil, err
 	} else {
 		if !raw {
-			if now != nil && now.Playing {
+			if now != nil {
 				var artists []Artist
 				for _, artist := range now.Item.Artists {
 					artists = append(artists, Artist{Name: artist.Name, URL: artist.ExternalURLs["spotify"]})
