@@ -21,6 +21,10 @@ token = "#{SPOTIFY_SERVER_TOKEN}"
 prefork = false
 timeZone = "#{SPOTIFY_SERVER_TIMEZONE}"
 
+[grpc]
+host = "localhost"
+port = "4040"
+
 [socket]
 origins = ["*"]
 readBufferSize = 2048
@@ -35,17 +39,18 @@ refreshToken = "#{SPOTIFY_REFRESH_TOKEN}"
 #### Configuration types
 | Name | Type | Descrption |
 | ---- | ---- | ---------- |
-| host | `String` | The host to listen on. |
-| port | `String` | The port to listen on. |
-| token | `String` | The token to use for the server. |
-| prefork | `Boolean` | Whether to use preforking. |
-| timeZone | `String` | The time zone to use. |
-| origins | `Array` | The origins to allow. |
-| readBufferSize | `Integer` | The read buffer size. |
-| writeBufferSize | `Integer` | The write buffer size. |
-| clientID | `String` | The Spotify client ID. |
-| clientSecret | `String` | The Spotify client secret. |
-| refreshToken | `String` | The Spotify refresh token. |
+| server.host | `String` | The host to listen on. |
+| server.port | `String` | The port to listen on. |
+| server.prefork | `Boolean` | Whether to use preforking. |
+| server.timeZone | `String` | The time zone to use. |
+| grpc.host | `String` | The host to listen on for gRPC. |
+| grpc.port | `String` | The port to listen on for gRPC. |
+| socket.origins | `Array` | The origins to allow. |
+| socket.readBufferSize | `Integer` | The read buffer size. |
+| socket.writeBufferSize | `Integer` | The write buffer size. |
+| spotify.clientID | `String` | The Spotify client ID. |
+| spotify.clientSecret | `String` | The Spotify client secret. |
+| spotify.refreshToken | `String` | The Spotify refresh token. |
 
 
 ### Opcodes
@@ -112,18 +117,6 @@ It fires each in the 5-second range with the current progress of the song
   "op": 2,
   "t": "TRACK_PROGRESS",
   "d": 728
-}
-```
-
-##### `TRACK_STATE`
-Triggers when player state changes
-```json
-{
-  "op": 2,
-  "t": "TRACK_STATE",
-  "d": {
-    "is_playing": true
-  }
 }
 ```
 
