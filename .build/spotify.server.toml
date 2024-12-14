@@ -1,11 +1,11 @@
 [server]
-host = "localhost"
+host = "#{SERVER_HOST}"
 port = "5050"
 prefork = false
 timeZone = "#{SPOTIFY_SERVER_TIMEZONE}"
 
 [grpc]
-host = "localhost"
+host = "#{GRPC_HOST}"
 port = "4040"
 
 [socket]

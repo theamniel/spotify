@@ -1,0 +1,32 @@
+networks:
+  spotify_net:
+
+services:
+  server:
+    env_file: .env
+    environment:
+      - GRPC_HOST=grpc
+      - SERVER_HOST=0.0.0.0
+    build:
+      context: .
+      args:
+        - APP=server
+    ports:
+      - 5050:5050
+    networks:
+      - spotify_net
+    depends_on:
+      - grpc
+
+  grpc:
+    env_file: .env
+    environment:
+      - GRPC_HOST=grpc
+    build:
+      context: .
+      args:
+        - APP=grpc
+    ports:
+      - 4040:4040
+    networks:
+      - spotify_net
