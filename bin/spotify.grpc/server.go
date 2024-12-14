@@ -67,7 +67,7 @@ func (s *server) OnListen(req *proto.Request, stream grpc.ServerStreamingServer[
 				})
 			}
 
-			if track.ID == oldTrack.ID && track.IsPlaying {
+			if track.Timestamp != nil {
 				progress := int64(track.Timestamp.Progress)
 				stream.Send(&proto.Reponse{ID: id, E: "PROGRESS", Track: nil, Progress: &progress})
 			}
