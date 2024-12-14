@@ -38,6 +38,11 @@ generate-proto:
 		--go-grpc_opt=paths=source_relative \
 		$(PROTO_FILES)/spotify.proto
 
+build-container:
+	@echo building container...
+	docker compose up -d --build
+	@echo container built successfully.
+
 build-grpc:
 	@echo Building grpc binary...
 	@go build -o $(BINARY_OUTPUT_GRPC) $(ENTRY_GRPC)
