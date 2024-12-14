@@ -37,28 +37,18 @@ func NewClient(conn *websocket.Conn) *Client {
 	}
 }
 
-func (socket *Client) IsAlive() bool {
-	socket.mu.RLock()
-	defer socket.mu.RUnlock()
-	return socket.isConnectionAlive
-}
-
-func (socket *Client) SetAlive(alive bool) {
-	socket.mu.Lock()
-	defer socket.mu.Unlock()
-	socket.isConnectionAlive = alive
-}
-
 func (socket *Client) Close(code int, msg string) {
-	if socket.IsAlive() {
+	socket.mu.Lock()
+	if socket.isConnectionAlive {
 		close(socket.Done)
 		socket.Conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(code, msg), time.Now().Add(time.Second))
 	}
-	socket.SetAlive(false)
+	socket.isConnectionAlive = false
+	socket.mu.Unlock()
 }
 
 func (socket *Client) Send(event *Message) {
-	if !socket.IsAlive() {
+	if !socket.isConnectionAlive {
 		if event.retries <= MaxSendRetry {
 			go func() {
 				time.Sleep(RetrySendMessage)
@@ -95,7 +85,7 @@ func reader(ctx context.Context, socket *Client) {
 	for {
 		select {
 		case <-timer.C:
-			if !socket.IsAlive() {
+			if !socket.isConnectionAlive {
 				continue
 			}
 
@@ -121,7 +111,7 @@ func reader(ctx context.Context, socket *Client) {
 
 			if err != nil {
 				// todo
-				socket.Close(websocket.CloseAbnormalClosure, "")
+				socket.Close(websocket.CloseAbnormalClosure, err.Error())
 				continue
 			}
 

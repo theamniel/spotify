@@ -65,7 +65,7 @@ func (s *Socket[T]) Broadcast(msg *Message) {
 	defer s.mu.RUnlock()
 	for _, client := range s.pool.All() {
 		go func(client *Client) { // send to each client in parallel
-			if client != nil && client.IsAlive() {
+			if client != nil && client.isConnectionAlive {
 				client.Send(msg)
 			}
 		}(client)
