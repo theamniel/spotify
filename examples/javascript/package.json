@@ -15,7 +15,6 @@
     "type": "git",
     "url": "github.com/theamniel/spotify"
   },
- 
   "dependencies": {
     "jiti": "^2.4.1",
     "ws": "^8.18.0"
