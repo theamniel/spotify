@@ -87,7 +87,7 @@ func (c *SpotifyClient) GetNowPlaying(raw bool) (any, error) {
 		return nil, err
 	} else {
 		if !raw {
-			if now != nil {
+			if now != nil && now.Item != nil {
 				var artists []Artist
 				for _, artist := range now.Item.Artists {
 					artists = append(artists, Artist{Name: artist.Name, URL: artist.ExternalURLs["spotify"]})
