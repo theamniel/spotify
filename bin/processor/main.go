@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	"spotify/config"
-	"spotify/services/grpc/proto"
+	"spotify/protocols"
 	"spotify/services/spotify"
 )
 
@@ -55,7 +55,7 @@ func Server(lc fx.Lifecycle, srv *grpc.Server, cfg *config.Config) {
 
 func ConfigureApp(client *spotify.SpotifyClient) *grpc.Server {
 	srv := grpc.NewServer()
-	proto.RegisterSpotifyServer(srv, &server{spotify: client})
+	protocols.RegisterSpotifyServer(srv, &server{spotify: client})
 	reflection.Register(srv)
 	return srv
 }

@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-option go_package = "spotify/services/grpc/proto";
+option go_package = "spotify/protocols";
 
-package proto;
+package protocols;
 
 message Request {
   string ID = 1;

@@ -9,7 +9,7 @@ Once connected, you will receive `Opcode 1: Hello`.
 You should send `Opcode 2: Initialize` immediately after receiving Opcode 1.
 
 ### Configuration
-It is configured using the file [spotify-server.toml](./bin/spotify-server.toml) to avoid recompiling in exchange of some variable.
+It is configured using the file [config.toml](./.build/config.toml) to avoid recompiling in exchange of some variable.
 
 Additionally, using `#{var}` replaces it with values that are in the environment variable.
 

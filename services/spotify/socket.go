@@ -8,18 +8,23 @@ import (
 	"os"
 
 	"spotify/config"
-	"spotify/services/grpc/proto"
+	"spotify/protocols"
 	"spotify/services/socket"
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 )
 
-func Socket(client *SpotifyClient, cfg *config.SocketConfig) fiber.Handler {
+func Socket(client *SpotifyClient, cfg *config.SocketConfig, grpc protocols.SpotifyClient) fiber.Handler {
 	client.Socket = socket.New[Track]()
 	// start poll data
-	go onInit(client)
-	go poll(client)
+	track, err := grpc.GetTrack(context.Background(), &protocols.Request{ID: fmt.Sprintf("%d", os.Getpid())})
+	if err != nil {
+		log.Fatal(err)
+	}
+	client.Socket.SetState(FromProtoToTrack(track))
+
+	go poll(client, grpc)
 	return websocket.New(client.Socket.Handle, websocket.Config{
 		Origins:         cfg.Origins,
 		ReadBufferSize:  cfg.ReadBufferSize,
@@ -27,16 +32,8 @@ func Socket(client *SpotifyClient, cfg *config.SocketConfig) fiber.Handler {
 	})
 }
 
-func onInit(client *SpotifyClient) {
-	track, err := client.Rpc.GetTrack(context.Background(), &proto.Request{ID: fmt.Sprintf("%d", os.Getpid())})
-	if err != nil {
-		log.Fatal(err)
-	}
-	client.Socket.SetState(FromProtoToTrack(track))
-}
-
-func poll(client *SpotifyClient) {
-	stream, err := client.Rpc.OnListen(context.Background(), &proto.Request{ID: fmt.Sprintf("%d", os.Getpid())})
+func poll(client *SpotifyClient, grpc protocols.SpotifyClient) {
+	stream, err := grpc.OnListen(context.Background(), &protocols.Request{ID: fmt.Sprintf("%d", os.Getpid())})
 	if err != nil {
 		return
 	}

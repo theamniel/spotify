@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"spotify/config"
-	"spotify/services/grpc/proto"
 	"spotify/services/socket"
 
 	"github.com/zmb3/spotify/v2"
@@ -18,29 +17,9 @@ const DefaultPollRate time.Duration = 5
 type SpotifyClient struct {
 	Socket *socket.Socket[Track]
 	Client *spotify.Client
-	Rpc    proto.SpotifyClient
 
 	PollRate    time.Duration
 	isConnected bool
-}
-
-func NewGRPC(cfg *config.Config, rpc proto.SpotifyClient) *SpotifyClient {
-	auth := spotifyauth.New(
-		spotifyauth.WithClientID(cfg.Spotify.ClientID),
-		spotifyauth.WithClientSecret(cfg.Spotify.ClientSecret),
-	)
-	token, err := auth.RefreshToken(context.Background(), &oauth2.Token{RefreshToken: cfg.Spotify.RefreshToken})
-	if err != nil {
-		panic(err)
-	}
-
-	return &SpotifyClient{
-		Client:      spotify.New(auth.Client(context.Background(), token), spotify.WithRetry(true)),
-		isConnected: len(token.AccessToken) > 0,
-		PollRate:    DefaultPollRate,
-		Socket:      nil,
-		Rpc:         rpc,
-	}
 }
 
 func New(cfg *config.Config) *SpotifyClient {
@@ -58,7 +37,6 @@ func New(cfg *config.Config) *SpotifyClient {
 		isConnected: len(token.AccessToken) > 0,
 		PollRate:    DefaultPollRate,
 		Socket:      nil,
-		Rpc:         nil,
 	}
 }
 

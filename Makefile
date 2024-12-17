@@ -6,10 +6,10 @@ endif
 
 # App info
 BINARY_NAME 			:= spotify.server
-ENTRY_MAIN 				:= ./bin/spotify
+ENTRY_MAIN 				:= ./bin/gateway
 BINARY_NAME_GRPC 	:= spotify.grpc
-ENTRY_GRPC 				:= ./bin/spotify.grpc
-PROTO_FILES 			:= services/grpc/proto
+ENTRY_GRPC 				:= ./bin/processor
+PROTO_FILES 			:= ./protocols
 
 # Folders
 OUTPUT_FOLDER 			:= .build
@@ -36,7 +36,7 @@ generate-proto:
 		--go_opt=paths=source_relative \
 		--go-grpc_out=. \
 		--go-grpc_opt=paths=source_relative \
-		$(PROTO_FILES)/spotify.proto
+		$(PROTO_FILES)/*.proto
 
 build-container:
 	@echo building container...
@@ -70,8 +70,3 @@ run-grpc:
 
 run-server:
 	@$(BINARY_OUTPUT)
-
-run:
-	$(BINARY_OUTPUT)
-	$(BINARY_NAME_GRPC-grpc)
-	

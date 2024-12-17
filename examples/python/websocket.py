@@ -8,7 +8,7 @@ URL = 'http://localhost:5050/socket'
 # opcode 1
 async def hello(socket: ClientWebSocketResponse, packet):
   print('[HELLO]:', packet['d'])
-  interval = packet['d'].get('heartbeat_interval', 35) / 1000
+  interval = packet['d'].get('heartbeat_interval', 35000) / 1000
   asyncio.create_task(heartbeat_loop(socket, interval)) 
   await socket.send_json({'op': 2})
 

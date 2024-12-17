@@ -1,8 +1,9 @@
 package spotify
 
 import (
-	"spotify/services/grpc/proto"
 	"time"
+
+	proto "spotify/protocols"
 
 	sm "github.com/zmb3/spotify/v2"
 )

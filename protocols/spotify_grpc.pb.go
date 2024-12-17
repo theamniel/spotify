@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v5.29.1
-// source: services/grpc/proto/spotify.proto
+// source: protocols/spotify.proto
 
-package proto
+package protocols
 
 import (
 	context "context"
@@ -19,8 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Spotify_GetTrack_FullMethodName = "/proto.Spotify/GetTrack"
-	Spotify_OnListen_FullMethodName = "/proto.Spotify/OnListen"
+	Spotify_GetTrack_FullMethodName = "/protocols.Spotify/GetTrack"
+	Spotify_OnListen_FullMethodName = "/protocols.Spotify/OnListen"
 )
 
 // SpotifyClient is the client API for Spotify service.
@@ -144,7 +144,7 @@ type Spotify_OnListenServer = grpc.ServerStreamingServer[Reponse]
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Spotify_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "proto.Spotify",
+	ServiceName: "protocols.Spotify",
 	HandlerType: (*SpotifyServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -159,5 +159,5 @@ var Spotify_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "services/grpc/proto/spotify.proto",
+	Metadata: "protocols/spotify.proto",
 }

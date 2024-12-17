@@ -5,17 +5,19 @@ import (
 	"log"
 
 	"spotify/config"
-	"spotify/services/grpc/proto"
+	"spotify/protocols"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func Connect(cfg *config.Config) (proto.SpotifyClient, error) {
+type SpotifyClient = protocols.SpotifyClient
+
+func Connect(cfg *config.Config) (protocols.SpotifyClient, error) {
 	conn, err := grpc.NewClient(fmt.Sprintf("%s:%s", cfg.Grpc.Host, cfg.Grpc.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
 	}
 	log.Printf("Connect to GRPC server at \"%s:%s\"", cfg.Grpc.Host, cfg.Grpc.Port)
-	return proto.NewSpotifyClient(conn), nil
+	return protocols.NewSpotifyClient(conn), nil
 }

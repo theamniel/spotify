@@ -18,7 +18,7 @@ func Load[T any]() (*T, error) {
 	if err := godotenv.Load(); err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
-	return LoadFile[T](dir + "spotify.server.toml")
+	return LoadFile[T](dir + "config.toml")
 }
 
 func LoadFile[T any](fileName string) (*T, error) {

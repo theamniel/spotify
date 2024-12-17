@@ -4,14 +4,14 @@ import (
 	"context"
 	"sync"
 
-	"spotify/services/grpc/proto"
+	"spotify/protocols"
 	"spotify/services/spotify"
 
 	"google.golang.org/grpc"
 )
 
 type server struct {
-	proto.UnimplementedSpotifyServer
+	protocols.UnimplementedSpotifyServer
 	spotify *spotify.SpotifyClient
 
 	state *spotify.Track
@@ -40,7 +40,7 @@ func (s *server) hasState() bool {
 	return s.state != nil
 }
 
-func (s *server) GetTrack(_ context.Context, req *proto.Request) (*proto.Track, error) {
+func (s *server) GetTrack(_ context.Context, req *protocols.Request) (*protocols.Track, error) {
 	trackResult := &spotify.Track{}
 	for {
 		if track, err := s.spotify.GetSpotifyStatus(); err != nil {
@@ -54,12 +54,12 @@ func (s *server) GetTrack(_ context.Context, req *proto.Request) (*proto.Track, 
 	return trackResult.ToProto(), nil
 }
 
-func (s *server) OnListen(req *proto.Request, stream grpc.ServerStreamingServer[proto.Reponse]) error {
+func (s *server) OnListen(req *protocols.Request, stream grpc.ServerStreamingServer[protocols.Reponse]) error {
 	id := req.GetID()
 	s.pool(id, func(track, oldTrack *spotify.Track) {
 		if track != nil && oldTrack != nil {
 			if track.ID != oldTrack.ID {
-				stream.Send(&proto.Reponse{
+				stream.Send(&protocols.Reponse{
 					ID:       id,
 					E:        "CHANGE",
 					Track:    track.ToProto(),
@@ -69,7 +69,7 @@ func (s *server) OnListen(req *proto.Request, stream grpc.ServerStreamingServer[
 
 			if track.Timestamp != nil {
 				progress := int64(track.Timestamp.Progress)
-				stream.Send(&proto.Reponse{ID: id, E: "PROGRESS", Track: nil, Progress: &progress})
+				stream.Send(&protocols.Reponse{ID: id, E: "PROGRESS", Track: nil, Progress: &progress})
 			}
 		}
 	})

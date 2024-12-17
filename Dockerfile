@@ -12,7 +12,7 @@ ARG APP
 USER root
 
 COPY --from=build /src/.build/spotify.${APP} /bin/
-COPY --from=build /src/.build/spotify.server.toml /bin/
+COPY --from=build /src/.build/config.toml /bin/
 
 EXPOSE 5050
 

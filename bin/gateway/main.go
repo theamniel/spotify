@@ -25,7 +25,7 @@ func main() {
 		fx.Provide(
 			config.Load[config.Config],
 			grpc.Connect,
-			spotify.NewGRPC,
+			spotify.New,
 			ConfigureApp,
 		),
 		fx.Invoke(
@@ -87,7 +87,7 @@ func ConfigureMiddlewares(app *fiber.App, cfg *config.Config) {
 	}))
 }
 
-func ConfigureRoutes(app *fiber.App, client *spotify.SpotifyClient, cfg *config.Config) {
+func ConfigureRoutes(app *fiber.App, client *spotify.SpotifyClient, cfg *config.Config, grpc grpc.SpotifyClient) {
 	app.Get("/now-playing", func(c *fiber.Ctx) error {
 		raw, open, url := c.QueryBool("raw"), c.QueryBool("open"), ""
 		payload, err := client.GetNowPlaying(raw)
@@ -125,7 +125,7 @@ func ConfigureRoutes(app *fiber.App, client *spotify.SpotifyClient, cfg *config.
 	})
 
 	/* Websocket service */
-	app.Get("/socket", middlewares.WebsocketCheck(), spotify.Socket(client, cfg.Socket))
+	app.Get("/socket", middlewares.WebsocketCheck(), spotify.Socket(client, cfg.Socket, grpc))
 	/* 404 */
 	app.Use(func(c *fiber.Ctx) error {
 		return c.Redirect("https://github.com/TheAmniel", 308)
