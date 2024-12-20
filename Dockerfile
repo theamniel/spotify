@@ -14,8 +14,6 @@ USER root
 COPY --from=build /src/.build/spotify.${APP} /bin/
 COPY --from=build /src/.build/config.toml /bin/
 
-EXPOSE 5050
-
 ENV ENTRYPOINT_CMD=/bin/spotify.${APP}
 
 ENTRYPOINT [ "sh", "-c", "$ENTRYPOINT_CMD" ]
