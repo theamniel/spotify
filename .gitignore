@@ -12,6 +12,8 @@ logs
 !tsconfig.json
 node_modules
 .scripts/
+.build/**
+!.build/config.toml
 
 # Editor directories and files
 .vscode/*
