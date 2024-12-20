@@ -9,31 +9,28 @@ Once connected, you will receive `Opcode 1: Hello`.
 You should send `Opcode 2: Initialize` immediately after receiving Opcode 1.
 
 ### Configuration
-It is configured using the file [config.toml](./.build/config.toml) to avoid recompiling in exchange of some variable.
-
-Additionally, using `#{var}` replaces it with values that are in the environment variable.
+It is configured using the file `config.toml` to avoid recompiling in exchange of some variable.
 
 ```toml
 [server]
 host = "localhost"
-port = "5050"
-token = "#{SPOTIFY_SERVER_TOKEN}"
+port = 5000
 prefork = false
-timeZone = "#{SPOTIFY_SERVER_TIMEZONE}"
+timezone = "America/Caracas"
 
 [grpc]
 host = "localhost"
-port = "4040"
+port = 5001
 
 [socket]
 origins = ["*"]
-readBufferSize = 2048
-writeBufferSize = 2048
+read_buffer_size = 2048
+write_buffer_size = 2048
 
 [spotify]
-clientID = "#{SPOTIFY_CLIENT_ID}"
-clientSecret = "#{SPOTIFY_CLIENT_SECRET}"
-refreshToken = "#{SPOTIFY_REFRESH_TOKEN}"
+client_id = "Spotify app ID"
+client_secret = "Spotify app secret"
+refresh_token = "User refresh token from oauth2"
 ```
 
 #### Configuration types
@@ -42,15 +39,15 @@ refreshToken = "#{SPOTIFY_REFRESH_TOKEN}"
 | server.host | `String` | The host to listen on. |
 | server.port | `String` | The port to listen on. |
 | server.prefork | `Boolean` | Whether to use preforking. |
-| server.timeZone | `String` | The time zone to use. |
+| server.timezone | `String` | The time zone to use. |
 | grpc.host | `String` | The host to listen on for gRPC. |
 | grpc.port | `String` | The port to listen on for gRPC. |
 | socket.origins | `Array` | The origins to allow. |
-| socket.readBufferSize | `Integer` | The read buffer size. |
-| socket.writeBufferSize | `Integer` | The write buffer size. |
-| spotify.clientID | `String` | The Spotify client ID. |
-| spotify.clientSecret | `String` | The Spotify client secret. |
-| spotify.refreshToken | `String` | The Spotify refresh token. |
+| socket.read_buffer_size | `Integer` | The read buffer size. |
+| socket.write_buffer_size | `Integer` | The write buffer size. |
+| spotify.client_id | `String` | The Spotify client ID. |
+| spotify.client_secret | `String` | The Spotify client secret. |
+| spotify.refresh_token | `String` | The Spotify refresh token. |
 
 
 ### Opcodes

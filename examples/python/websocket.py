@@ -3,7 +3,7 @@ import json
 from time import time
 from aiohttp import ClientSession, ClientWebSocketResponse, WSMsgType
 
-URL = 'http://localhost:5050/socket'
+URL = 'http://localhost:5000/socket'
 
 # opcode 1
 async def hello(socket: ClientWebSocketResponse, packet):

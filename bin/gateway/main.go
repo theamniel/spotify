@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 
-	"spotify/config"
 	"spotify/middlewares"
 	"spotify/services/grpc"
 	"spotify/services/spotify"
@@ -15,15 +14,31 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 
+	"github.com/knadh/koanf/parsers/toml"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/v2"
+
 	"go.uber.org/fx"
+	"go.uber.org/zap"
 )
 
 func main() {
 	log.SetFlags(log.Ltime)
 
+	k := koanf.New(".")
+	if err := k.Load(file.Provider("config.toml"), toml.Parser()); err != nil {
+		log.Fatal(err)
+	}
+
+	logger, err := zap.NewProduction()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer logger.Sync()
+
 	fx.New(
+		fx.Supply(k, logger.Sugar()),
 		fx.Provide(
-			config.Load[config.Config],
 			grpc.Connect,
 			spotify.New,
 			ConfigureApp,
@@ -33,11 +48,10 @@ func main() {
 			ConfigureRoutes,
 			Server,
 		),
-		fx.NopLogger,
 	).Run()
 }
 
-func Server(lc fx.Lifecycle, app *fiber.App, client *spotify.SpotifyClient, cfg *config.Config) {
+func Server(lc fx.Lifecycle, app *fiber.App, k *koanf.Koanf, client *spotify.SpotifyClient) {
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
 			app.Hooks().OnListen(func(ld fiber.ListenData) error {
@@ -49,7 +63,7 @@ func Server(lc fx.Lifecycle, app *fiber.App, client *spotify.SpotifyClient, cfg 
 			})
 
 			go func() {
-				if err := app.Listen(fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port)); err != nil {
+				if err := app.Listen(fmt.Sprintf(":%d", k.Int("server.port"))); err != nil {
 					log.Fatal(err)
 				}
 			}()
@@ -67,7 +81,7 @@ func Server(lc fx.Lifecycle, app *fiber.App, client *spotify.SpotifyClient, cfg 
 	})
 }
 
-func ConfigureApp(cfg *config.Config) *fiber.App {
+func ConfigureApp(k *koanf.Koanf) *fiber.App {
 	return fiber.New(fiber.Config{
 		AppName:               "Spotify Server",
 		DisableStartupMessage: true,
@@ -76,18 +90,18 @@ func ConfigureApp(cfg *config.Config) *fiber.App {
 		UnescapePath:          true,
 		JSONEncoder:           json.Marshal,
 		JSONDecoder:           json.Unmarshal,
-		Prefork:               cfg.Server.Prefork,
+		Prefork:               k.Bool("server.prefork"),
 	})
 }
 
-func ConfigureMiddlewares(app *fiber.App, cfg *config.Config) {
+func ConfigureMiddlewares(app *fiber.App, k *koanf.Koanf) {
 	app.Use(recover.New())
 	app.Use(logger.New(logger.Config{
-		TimeZone: cfg.Server.TimeZone,
+		TimeZone: k.String("server.timezone"),
 	}))
 }
 
-func ConfigureRoutes(app *fiber.App, client *spotify.SpotifyClient, cfg *config.Config, grpc grpc.SpotifyClient) {
+func ConfigureRoutes(app *fiber.App, client *spotify.SpotifyClient, k *koanf.Koanf, grpc grpc.SpotifyClient) {
 	app.Get("/now-playing", func(c *fiber.Ctx) error {
 		raw, open, url := c.QueryBool("raw"), c.QueryBool("open"), ""
 		payload, err := client.GetNowPlaying(raw)
@@ -125,7 +139,7 @@ func ConfigureRoutes(app *fiber.App, client *spotify.SpotifyClient, cfg *config.
 	})
 
 	/* Websocket service */
-	app.Get("/socket", middlewares.WebsocketCheck(), spotify.Socket(client, cfg.Socket, grpc))
+	app.Get("/socket", middlewares.WebsocketCheck(), spotify.Socket(client, k, grpc))
 	/* 404 */
 	app.Use(func(c *fiber.Ctx) error {
 		return c.Redirect("https://github.com/TheAmniel", 308)

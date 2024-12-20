@@ -1,6 +1,6 @@
 import WebSocket from 'ws';
 
-const ws = new WebSocket('ws://localhost:5050/socket');
+const ws = new WebSocket('ws://localhost:5000/socket');
 
 let lastHeartbeatReceive: number | null;
 let lastHeartbeatSent: number | null;

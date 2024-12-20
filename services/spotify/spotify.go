@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"spotify/config"
 	"spotify/services/socket"
 
+	"github.com/knadh/koanf/v2"
 	"github.com/zmb3/spotify/v2"
 	spotifyauth "github.com/zmb3/spotify/v2/auth"
 	"golang.org/x/oauth2"
@@ -22,16 +22,16 @@ type SpotifyClient struct {
 	isConnected bool
 }
 
-func New(cfg *config.Config) *SpotifyClient {
+func New(k *koanf.Koanf) *SpotifyClient {
 	auth := spotifyauth.New(
-		spotifyauth.WithClientID(cfg.Spotify.ClientID),
-		spotifyauth.WithClientSecret(cfg.Spotify.ClientSecret),
+		spotifyauth.WithClientID(k.String("spotify.client_id")),
+		spotifyauth.WithClientSecret(k.String("spotify.client_secret")),
 	)
-	token, err := auth.RefreshToken(context.Background(), &oauth2.Token{RefreshToken: cfg.Spotify.RefreshToken})
+
+	token, err := auth.RefreshToken(context.Background(), &oauth2.Token{RefreshToken: k.String("spotify.refresh_token")})
 	if err != nil {
 		panic(err)
 	}
-
 	return &SpotifyClient{
 		Client:      spotify.New(auth.Client(context.Background(), token), spotify.WithRetry(true)),
 		isConnected: len(token.AccessToken) > 0,

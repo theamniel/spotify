@@ -6,38 +6,42 @@ import (
 	"log"
 	"net"
 
+	"github.com/knadh/koanf/parsers/toml"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/v2"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	"spotify/config"
 	"spotify/protocols"
 	"spotify/services/spotify"
 )
 
 func main() {
-	log.SetFlags(log.Ltime)
+	k := koanf.New(".")
+	if err := k.Load(file.Provider("config.toml"), toml.Parser()); err != nil {
+		log.Fatal(err)
+	}
 
 	fx.New(
+		fx.Supply(k),
 		fx.Provide(
-			config.Load[config.Config],
 			spotify.New,
 			ConfigureApp,
 		),
 		fx.Invoke(Server),
-		fx.NopLogger,
 	).Run()
 }
 
-func Server(lc fx.Lifecycle, srv *grpc.Server, cfg *config.Config) {
+func Server(lc fx.Lifecycle, srv *grpc.Server, k *koanf.Koanf) {
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			list, err := net.Listen("tcp", fmt.Sprintf("%s:%s", cfg.Grpc.Host, cfg.Grpc.Port))
+			list, err := net.Listen("tcp", fmt.Sprintf(":%d", k.Int("grpc.port")))
 			if err != nil {
 				return err
 			}
 			go func() {
-				log.Printf("Running Grpc on \"%s:%s\"\n", cfg.Grpc.Host, cfg.Grpc.Port)
+				log.Printf("Running Grpc on \"%s\"\n", list.Addr().String())
 				log.Println("Press CTRL-C to stop the application")
 				if err := srv.Serve(list); err != nil {
 					log.Fatal(err)

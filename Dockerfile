@@ -9,11 +9,11 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 make build-${APP}
 
 FROM alpine:latest AS final
 ARG APP
-USER root
+WORKDIR /spotify
 
-COPY --from=build /src/.build/spotify.${APP} /bin/
-COPY --from=build /src/.build/config.toml /bin/
+COPY --from=build /src/.build/spotify.${APP} .
+COPY --from=build /src/config.toml .
 
-ENV ENTRYPOINT_CMD=/bin/spotify.${APP}
+ENV ENTRYPOINT_CMD=/spotify.${APP}
 
 ENTRYPOINT [ "sh", "-c", "$ENTRYPOINT_CMD" ]

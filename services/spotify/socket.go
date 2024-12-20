@@ -7,15 +7,15 @@ import (
 	"log"
 	"os"
 
-	"spotify/config"
 	"spotify/protocols"
 	"spotify/services/socket"
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
+	"github.com/knadh/koanf/v2"
 )
 
-func Socket(client *SpotifyClient, cfg *config.SocketConfig, grpc protocols.SpotifyClient) fiber.Handler {
+func Socket(client *SpotifyClient, k *koanf.Koanf, grpc protocols.SpotifyClient) fiber.Handler {
 	client.Socket = socket.New[Track]()
 	// start poll data
 	track, err := grpc.GetTrack(context.Background(), &protocols.Request{ID: fmt.Sprintf("%d", os.Getpid())})
@@ -26,9 +26,9 @@ func Socket(client *SpotifyClient, cfg *config.SocketConfig, grpc protocols.Spot
 
 	go poll(client, grpc)
 	return websocket.New(client.Socket.Handle, websocket.Config{
-		Origins:         cfg.Origins,
-		ReadBufferSize:  cfg.ReadBufferSize,
-		WriteBufferSize: cfg.WriteBufferSize,
+		Origins:         k.Strings("websocket.origins"),
+		ReadBufferSize:  k.Int("websocket.read_buffer_size"),
+		WriteBufferSize: k.Int("websocket.write_buffer_size"),
 	})
 }
 
