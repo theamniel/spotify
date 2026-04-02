@@ -10,8 +10,8 @@ import (
 	"spotify/protocols"
 	"spotify/services/socket"
 
-	"github.com/gofiber/contrib/websocket"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/contrib/v3/websocket"
+	"github.com/gofiber/fiber/v3"
 	"github.com/knadh/koanf/v2"
 )
 

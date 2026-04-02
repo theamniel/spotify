@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
-	"github.com/gofiber/contrib/websocket"
-	"github.com/gofiber/fiber/v2/utils"
+	"github.com/gofiber/contrib/v3/websocket"
+	"github.com/gofiber/utils/v2"
 )
 
 const (

@@ -8,6 +8,7 @@ logs
 **/*.exe
 **/*.ps*1
 **/*.json
+**/*lock.*
 !package.json
 !tsconfig.json
 node_modules

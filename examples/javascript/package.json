@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "github.com/theamniel/spotify"
+    "url": "github.com/amn1el/spotify"
   },
   "dependencies": {
     "jiti": "^2.4.1",

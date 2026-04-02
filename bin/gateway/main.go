@@ -10,9 +10,9 @@ import (
 	"spotify/services/spotify"
 
 	"github.com/goccy/go-json"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/logger"
+	"github.com/gofiber/fiber/v3/middleware/recover"
 
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/providers/file"
@@ -63,7 +63,10 @@ func Server(lc fx.Lifecycle, app *fiber.App, k *koanf.Koanf, client *spotify.Spo
 			})
 
 			go func() {
-				if err := app.Listen(fmt.Sprintf(":%d", k.Int("server.port"))); err != nil {
+				if err := app.Listen(fmt.Sprintf(":%d", k.Int("server.port")), fiber.ListenConfig{
+					EnablePrefork:         k.Bool("server.prefork"),
+					DisableStartupMessage: true,
+				}); err != nil {
 					log.Fatal(err)
 				}
 			}()
@@ -83,14 +86,12 @@ func Server(lc fx.Lifecycle, app *fiber.App, k *koanf.Koanf, client *spotify.Spo
 
 func ConfigureApp(k *koanf.Koanf) *fiber.App {
 	return fiber.New(fiber.Config{
-		AppName:               "Spotify Server",
-		DisableStartupMessage: true,
-		StrictRouting:         false,
-		CaseSensitive:         false,
-		UnescapePath:          true,
-		JSONEncoder:           json.Marshal,
-		JSONDecoder:           json.Unmarshal,
-		Prefork:               k.Bool("server.prefork"),
+		AppName:       "Spotify Server",
+		StrictRouting: false,
+		CaseSensitive: false,
+		UnescapePath:  true,
+		JSONEncoder:   json.Marshal,
+		JSONDecoder:   json.Unmarshal,
 	})
 }
 
@@ -102,8 +103,8 @@ func ConfigureMiddlewares(app *fiber.App, k *koanf.Koanf) {
 }
 
 func ConfigureRoutes(app *fiber.App, client *spotify.SpotifyClient, k *koanf.Koanf, grpc grpc.SpotifyClient) {
-	app.Get("/now-playing", func(c *fiber.Ctx) error {
-		raw, open, url := c.QueryBool("raw"), c.QueryBool("open"), ""
+	app.Get("/now-playing", func(c fiber.Ctx) error {
+		raw, open, url := fiber.Query[bool](c, "raw"), fiber.Query[bool](c, "open"), ""
 		payload, err := client.GetNowPlaying(raw)
 		if err != nil {
 			return c.Status(500).JSON(err)
@@ -115,13 +116,13 @@ func ConfigureRoutes(app *fiber.App, client *spotify.SpotifyClient, k *koanf.Koa
 			} else {
 				url = payload.(*spotify.Track).URL
 			}
-			return c.Redirect(url, 308)
+			return c.Redirect().Status(fiber.StatusPermanentRedirect).To(url)
 		}
 		return c.Status(200).JSON(payload)
 	})
 
-	app.Get("/recently-played", func(c *fiber.Ctx) error {
-		raw, open, limit, url := c.QueryBool("raw"), c.QueryBool("open"), c.QueryInt("limit"), ""
+	app.Get("/recently-played", func(c fiber.Ctx) error {
+		raw, open, limit, url := fiber.Query[bool](c, "raw"), fiber.Query[bool](c, "open"), fiber.Query[int](c, "limit"), ""
 		payload, err := client.GetLastPlayed(raw, limit)
 		if err != nil {
 			return c.Status(500).JSON(err)
@@ -133,7 +134,7 @@ func ConfigureRoutes(app *fiber.App, client *spotify.SpotifyClient, k *koanf.Koa
 			} else {
 				url = payload.([]*spotify.Track)[0].URL
 			}
-			return c.Redirect(url, 308)
+			return c.Redirect().Status(fiber.StatusPermanentRedirect).To(url)
 		}
 		return c.Status(200).JSON(payload)
 	})
@@ -141,8 +142,7 @@ func ConfigureRoutes(app *fiber.App, client *spotify.SpotifyClient, k *koanf.Koa
 	/* Websocket service */
 	app.Get("/socket", middlewares.WebsocketCheck(), spotify.Socket(client, k, grpc))
 	/* 404 */
-	app.Use(func(c *fiber.Ctx) error {
-		return c.Redirect("https://github.com/TheAmniel", 308)
+	app.Use(func(c fiber.Ctx) error {
+		return c.Redirect().Status(fiber.StatusPermanentRedirect).To("https://github.com/amn1el")
 	})
-
 }

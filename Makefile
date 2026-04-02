@@ -24,7 +24,7 @@ endif
 .PHONY: setup ## Install all the build dependencies
 setup:
 	@echo Updating dependency tree...
-	go mod tidy 
+	go mod tidy
 	go mod download
 	@echo Updated dependency tree successfully.
 
